@@ -2,115 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import GoLiveChecklist from './GoLiveChecklist'
-import AcquisitionRunPanel from "../AcquisitionRunPanel";
-import SellerLeadQueue from "../SellerLeadQueue";
-import OutreachReadyQueue from "../OutreachReadyQueue";
-import ContactedSellerQueue from "../ContactedSellerQueue";
-import SellerResponseQueue from "../SellerResponseQueue";
-import SellerApprovedQueue from "../SellerApprovedQueue";
 
-type DashboardWorkspaceProps = {
-  sellerLeadCount: number
-  queueCount: number
-  activeDealCount: number
-  conversationCount: number
-  closedDealCount: number
-  projectedCommission: number
-  activeDealValue: number
-  closedCommission: number
-  totalPipelineCommission: number
-}
-
-export default function DashboardWorkspace({
-  sellerLeadCount,
-  queueCount,
-  activeDealCount,
-  conversationCount,
-  closedDealCount,
-  projectedCommission,
-  activeDealValue,
-  closedCommission,
-  totalPipelineCommission,
-}: DashboardWorkspaceProps) {
+export default function DashboardWorkspace() {
     const liveRevenue = 79410
 const activeNegotiations = 39
 const aiClosers = 10
 const buyerDemand = 96
-const dashboardStats = [
-  {
-  label: 'Total Pipeline Commission',
-  value: `$${Math.round(totalPipelineCommission).toLocaleString()}`,
-},
-  {
-  label: 'Projected Commission',
-  value: `$${Math.round(projectedCommission).toLocaleString()}`,
-},
-{
-  label: 'Active Deal Value',
-  value: `$${Math.round(activeDealValue).toLocaleString()}`,
-},
-{
-  label: 'Closed Commission',
-  value: `$${Math.round(closedCommission).toLocaleString()}`,
-},
-  {
-    label: 'Seller Leads',
-    value: sellerLeadCount,
-  },
-  {
-    label: 'AI Relist Queue',
-    value: queueCount,
-  },
-  {
-    label: 'Active Deals',
-    value: activeDealCount,
-  },
-  {
-    label: 'Buyer Conversations',
-    value: conversationCount,
-  },
-  {
-    label: 'Closed Deals',
-    value: closedDealCount,
-  },
-]
 
   const [inventory, setInventory] = useState<any[]>([])
-  const [phaseOneCounts, setPhaseOneCounts] = useState({
-  newLeads: 0,
-  approvedForOutreach: 0,
-  contacted: 0,
-  sellerResponded: 0,
-  sellerApproved: 0,
-})
-
-async function loadPhaseOneCounts() {
-  const { data, error } = await supabase
-    .from("seller_leads")
-    .select("status, outreach_status")
-
-  if (error) {
-    console.error("Phase 1 counts error:", error)
-    return
-  }
-
-  setPhaseOneCounts({
-    newLeads: data?.filter((lead) => lead.status === "new").length || 0,
-    approvedForOutreach:
-      data?.filter((lead) => lead.status === "approved_for_outreach").length || 0,
-    contacted:
-      data?.filter((lead) => lead.outreach_status === "contacted").length || 0,
-    sellerResponded:
-      data?.filter((lead) => lead.outreach_status === "seller_responded").length || 0,
-    sellerApproved:
-      data?.filter((lead) => lead.status === "seller_approved").length || 0,
-  })
-}
 
   useEffect(() => {
   loadInventory()
-  loadPhaseOneCounts()
 
   const channel = supabase
     .channel('inventory-dashboard-updates')
@@ -127,12 +29,7 @@ async function loadPhaseOneCounts() {
     )
     .subscribe()
 
-    const phaseOneTimer = setInterval(() => {
-    loadPhaseOneCounts()
-  }, 5000)
-
   return () => {
-    clearInterval(phaseOneTimer)
     supabase.removeChannel(channel)
   }
 }, [])
@@ -212,50 +109,9 @@ async function loadPhaseOneCounts() {
   },
 ]
 
- return (
-  <div className="space-y-6">
-<div className="rounded-2xl border border-cyan-900 bg-zinc-950 p-6">
-  <h2 className="text-2xl font-bold mb-4">Phase 1 Pipeline Summary</h2>
+  return (
 
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-    <div className="rounded-xl border border-zinc-800 bg-black p-4">
-      <p className="text-sm text-zinc-400">New Leads</p>
-      <p className="text-2xl font-bold">{phaseOneCounts.newLeads}</p>
-    </div>
-
-    <div className="rounded-xl border border-zinc-800 bg-black p-4">
-      <p className="text-sm text-zinc-400">Approved for Outreach</p>
-      <p className="text-2xl font-bold">{phaseOneCounts.approvedForOutreach}</p>
-    </div>
-
-    <div className="rounded-xl border border-zinc-800 bg-black p-4">
-      <p className="text-sm text-zinc-400">Contacted</p>
-      <p className="text-2xl font-bold">{phaseOneCounts.contacted}</p>
-    </div>
-
-    <div className="rounded-xl border border-zinc-800 bg-black p-4">
-      <p className="text-sm text-zinc-400">Seller Responded</p>
-      <p className="text-2xl font-bold">{phaseOneCounts.sellerResponded}</p>
-    </div>
-
-    <div className="rounded-xl border border-zinc-800 bg-black p-4">
-      <p className="text-sm text-zinc-400">Seller Approved</p>
-      <p className="text-2xl font-bold">{phaseOneCounts.sellerApproved}</p>
-    </div>
-  </div>
-</div>
-
-    <AcquisitionRunPanel />
-
-    <OutreachReadyQueue />
-
-    <ContactedSellerQueue />
-
-    <SellerResponseQueue />
-
-    <SellerApprovedQueue />
-
-    <SellerLeadQueue />
+    <div className="space-y-8">
 
       <div className="flex items-center justify-between">
 
@@ -280,27 +136,6 @@ async function loadPhaseOneCounts() {
         </div>
 
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-  {dashboardStats.map((stat) => (
-    <div
-      key={stat.label}
-      className="rounded-2xl border border-zinc-800 bg-black p-5"
-    >
-      <p className="text-xs text-zinc-500">{stat.label}</p>
-      <p className="mt-2 text-3xl font-bold text-white">
-  {stat.value}
-</p>
-    </div>
-  ))}
-</div>
-
-<GoLiveChecklist
-  sellerLeadCount={sellerLeadCount}
-  queueCount={queueCount}
-  activeDealCount={activeDealCount}
-  conversationCount={conversationCount}
-  closedDealCount={closedDealCount}
-/>
 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
   <div className="bg-black border border-zinc-800 rounded-2xl p-4">
