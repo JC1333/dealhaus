@@ -56,6 +56,41 @@ export default function SellerResponseQueue() {
 
     await loadRespondedLeads();
   }
+  async function approveSellerAndCreatePrepTask(lead: RespondedLead) {
+  const { error: leadError } = await supabase
+    .from("seller_leads")
+    .update({
+      status: "seller_approved",
+      outreach_status: "seller_approved",
+    })
+    .eq("id", lead.id);
+
+  if (leadError) {
+    setMessage(leadError.message);
+    return;
+  }
+
+  const { error: prepError } = await supabase
+    .from("listing_prep_tasks")
+    .insert({
+      seller_lead_id: lead.id,
+      item_title: lead.item_title,
+      seller_name: lead.seller_name,
+      seller_city: lead.seller_city,
+      seller_state: lead.seller_state,
+      asking_price: lead.asking_price,
+      estimated_profit: lead.estimated_profit,
+      acquisition_score: lead.acquisition_score,
+      prep_status: "pending",
+    });
+
+  if (prepError) {
+    setMessage(prepError.message);
+    return;
+  }
+
+  await loadRespondedLeads();
+}
 
   useEffect(() => {
   loadRespondedLeads();
@@ -113,16 +148,11 @@ export default function SellerResponseQueue() {
 
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() =>
-                  updateLead(lead.id, {
-                    status: "seller_approved",
-                    outreach_status: "seller_approved",
-                  })
-                }
-                className="bg-green-500 text-black rounded-xl px-4 py-2 text-sm font-semibold"
-              >
-                Seller Approved
-              </button>
+  onClick={() => approveSellerAndCreatePrepTask(lead)}
+  className="bg-green-500 text-black rounded-xl px-4 py-2 text-sm font-semibold"
+>
+  Seller Approved + Create Prep Task
+</button>
 
               <button
                 onClick={() =>

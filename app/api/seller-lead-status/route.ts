@@ -93,6 +93,24 @@ Rules:
       .select()
       .single();
 
+if (status === "approved_for_outreach" && data?.outreach_message) {
+  const { error: taskError } = await supabase
+    .from("outreach_tasks")
+    .insert({
+      seller_lead_id: data.id,
+      item_title: data.item_title,
+      seller_name: data.seller_name,
+      platform: data.platform,
+      outreach_message: data.outreach_message,
+      send_status: "pending",
+      attempt_count: 0,
+    });
+
+  if (taskError) {
+    return NextResponse.json({ error: taskError.message }, { status: 500 });
+  }
+}
+
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
