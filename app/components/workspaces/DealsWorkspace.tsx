@@ -182,20 +182,21 @@ const generateBuyerMatches = async () => {
     return
   }
 
-  const topDeals = inventory.slice(0, 3)
+  const activeDeals = inventory
+    .filter((deal) => deal.status === "active")
+    .slice(0, 5)
 
-  const fakeBuyers = [
-    { name: "Sarah Mitchell", email: "sarah.buyer@example.com" },
-    { name: "David Carter", email: "david.home@example.com" },
-    { name: "Amanda Brooks", email: "amanda.design@example.com" },
-  ]
+  if (activeDeals.length === 0) {
+    alert("No active inventory found for buyer matching")
+    return
+  }
 
-  const newMatches = topDeals.map((deal, index) => ({
+  const newMatches = activeDeals.map((deal, index) => ({
     inventory_id: deal.id,
     inventory_title: deal.title,
-    buyer_name: fakeBuyers[index]?.name || "Qualified Buyer",
-    buyer_email: fakeBuyers[index]?.email || "buyer@example.com",
-    buyer_interest_score: 80 + index * 5,
+    buyer_name: `Qualified Buyer ${index + 1}`,
+    buyer_email: `buyer${index + 1}@dealhaus.local`,
+    buyer_interest_score: Math.min(95, 82 + index * 3),
     outreach_status: "pending",
   }))
 
@@ -213,7 +214,7 @@ const generateBuyerMatches = async () => {
     setBuyerMatches((prev) => [...data, ...prev])
   }
 
-  alert("AI buyer matches generated")
+  alert("Buyer matches generated from active inventory")
 }
   return (
 
@@ -309,7 +310,8 @@ setContactMessage("")
             Active Deals
           </h1>
           <AiPipelineStats deals={inventory} />
-          <BuyerMatchAgent
+    
+        <BuyerMatchAgent
   matches={buyerMatches}
   onGenerateBuyerMatches={generateBuyerMatches}
   onContactBuyer={async (match) => {
@@ -333,6 +335,19 @@ setContactMessage("")
       )
     )
 
+    await supabase
+  .from("buyer_outreach_tasks")
+  .insert({
+    inventory_item_id: match.inventory_id,
+    item_title: match.inventory_title,
+    listing_price:
+  inventory.find((deal) => deal.id === match.inventory_id)?.price || 0,
+    buyer_name: match.buyer_name,
+    buyer_platform: "Facebook Marketplace",
+    outreach_message: `Hi ${match.buyer_name}, DealHaus found a listing you may be interested in: ${match.inventory_title}. Would you like details?`,
+    outreach_status: "pending",
+  })
+  
     const { error: conversationError } = await supabase
   .from("buyer_conversations")
   .insert({

@@ -11,6 +11,11 @@ import SellerResponseQueue from "../SellerResponseQueue";
 import SellerApprovedQueue from "../SellerApprovedQueue";
 import OutreachTaskQueue from "../OutreachTaskQueue";
 import ListingPrepQueue from "../ListingPrepQueue";
+import BuyerOutreachTaskQueue from "./BuyerOutreachTaskQueue";
+import NegotiationQueue from "./NegotiationQueue";
+import MarketplacePublishQueue from "./MarketplacePublishQueue";
+import RevenueQueue from "./RevenueQueue";
+import ExceptionQueue from "./ExceptionQueue";
 
 type DashboardWorkspaceProps = {
   sellerLeadCount: number
@@ -250,6 +255,16 @@ async function loadPhaseOneCounts() {
     <AcquisitionRunPanel />
 
     <OutreachTaskQueue />
+
+    <BuyerOutreachTaskQueue />
+
+    <NegotiationQueue />
+
+    <MarketplacePublishQueue />
+
+    <RevenueQueue />
+
+    <ExceptionQueue />
 
     <OutreachReadyQueue />
 
