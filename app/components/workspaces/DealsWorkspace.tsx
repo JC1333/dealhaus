@@ -197,7 +197,7 @@ const generateBuyerMatches = async () => {
     buyer_name: `Qualified Buyer ${index + 1}`,
     buyer_email: `buyer${index + 1}@dealhaus.local`,
     buyer_interest_score: Math.min(95, 82 + index * 3),
-    outreach_status: "pending",
+    outreach_status: "buyer_contacted",
   }))
 
   const { data, error } = await supabase
@@ -212,9 +212,35 @@ const generateBuyerMatches = async () => {
 
   if (data) {
     setBuyerMatches((prev) => [...data, ...prev])
+
+    for (const match of data) {
+      const listingPrice =
+        inventory.find((deal) => deal.id === match.inventory_id)?.price || 0
+
+      const { data: existingBuyerTask } = await supabase
+        .from("buyer_outreach_tasks")
+        .select("id")
+        .eq("inventory_item_id", match.inventory_id)
+        .limit(1)
+        .single()
+
+      if (!existingBuyerTask) {
+        await supabase
+          .from("buyer_outreach_tasks")
+          .insert({
+            inventory_item_id: match.inventory_id,
+            item_title: match.inventory_title,
+            listing_price: listingPrice,
+            buyer_name: match.buyer_name,
+            buyer_platform: "Facebook Marketplace",
+            outreach_message: `Hi ${match.buyer_name}, DealHaus found a listing you may be interested in: ${match.inventory_title}. Would you like details?`,
+            outreach_status: "buyer_contacted",
+          })
+      }
+    }
   }
 
-  alert("Buyer matches generated from active inventory")
+  alert("Buyer matches and outreach tasks generated from active inventory")
 }
   return (
 
@@ -353,7 +379,7 @@ if (!existingBuyerTask) {
       buyer_name: match.buyer_name,
       buyer_platform: "Facebook Marketplace",
       outreach_message: `Hi ${match.buyer_name}, DealHaus found a listing you may be interested in: ${match.inventory_title}. Would you like details?`,
-      outreach_status: "pending",
+      outreach_status: "buyer_contacted",
     })
 }
   if (existingBuyerTask) {
