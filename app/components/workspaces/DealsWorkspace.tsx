@@ -335,19 +335,39 @@ setContactMessage("")
       )
     )
 
-    await supabase
+  const { data: existingBuyerTask } = await supabase
   .from("buyer_outreach_tasks")
-  .insert({
-    inventory_item_id: match.inventory_id,
-    item_title: match.inventory_title,
-    listing_price:
-  inventory.find((deal) => deal.id === match.inventory_id)?.price || 0,
-    buyer_name: match.buyer_name,
-    buyer_platform: "Facebook Marketplace",
-    outreach_message: `Hi ${match.buyer_name}, DealHaus found a listing you may be interested in: ${match.inventory_title}. Would you like details?`,
-    outreach_status: "pending",
-  })
-  
+  .select("id")
+  .eq("inventory_item_id", match.inventory_id)
+  .limit(1)
+  .single()
+
+if (!existingBuyerTask) {
+  await supabase
+    .from("buyer_outreach_tasks")
+    .insert({
+      inventory_item_id: match.inventory_id,
+      item_title: match.inventory_title,
+      listing_price:
+        inventory.find((deal) => deal.id === match.inventory_id)?.price || 0,
+      buyer_name: match.buyer_name,
+      buyer_platform: "Facebook Marketplace",
+      outreach_message: `Hi ${match.buyer_name}, DealHaus found a listing you may be interested in: ${match.inventory_title}. Would you like details?`,
+      outreach_status: "pending",
+    })
+}
+  if (existingBuyerTask) {
+  await supabase
+    .from("exception_tasks")
+    .insert({
+      exception_type: "duplicate_buyer_outreach_attempt",
+      related_table: "buyer_outreach_tasks",
+      related_record_id: existingBuyerTask.id,
+      item_title: match.inventory_title,
+      exception_status: "open",
+      notes: `Duplicate buyer outreach blocked for ${match.buyer_name} on ${match.inventory_title}.`,
+    })
+}
     const { error: conversationError } = await supabase
   .from("buyer_conversations")
   .insert({

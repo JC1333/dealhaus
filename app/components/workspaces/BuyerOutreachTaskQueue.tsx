@@ -65,7 +65,18 @@ export default function BuyerOutreachTaskQueue() {
   if (
     outreach_status === "ready_for_negotiation" &&
     task
-  ) {
+  ) 
+ {
+  const { data: existingNegotiation } = await supabase
+    .from("negotiation_tasks")
+    .select("id")
+    .eq("buyer_outreach_task_id", task.id)
+    .limit(1)
+    .single();
+
+  if (existingNegotiation) {
+    setMessage("Negotiation task already exists.");
+  } else {
     await supabase
       .from("negotiation_tasks")
       .insert({
@@ -78,7 +89,7 @@ export default function BuyerOutreachTaskQueue() {
         negotiation_status: "pending",
       });
   }
-
+}
   await loadTasks();
 }
 

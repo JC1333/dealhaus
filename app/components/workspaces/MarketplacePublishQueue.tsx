@@ -187,21 +187,40 @@ async function saveUrls(task: PublishTask) {
               </button>
 
               <button
-  onClick={async () => {
-    await updateTask(task, { publish_status: "sold" });
+ onClick={async () => {
+  await updateTask(task, { publish_status: "sold" });
 
-    await supabase
-      .from("revenue_records")
-      .insert({
-        inventory_item_id: task.inventory_item_id,
-        item_title: task.item_title,
-        sale_price: task.listing_price,
-        commission_rate: 10,
-        commission_amount: (task.listing_price || 0) * 0.1,
-        seller_payout: (task.listing_price || 0) * 0.9,
-        revenue_status: "earned",
-      });
-  }}
+  const { data: existingRevenue } = await supabase
+    .from("revenue_records")
+    .select("id")
+    .eq("inventory_item_id", task.inventory_item_id)
+    .limit(1)
+    .single();
+
+  if (existingRevenue) {
+    setMessage("Revenue record already exists for this item.");
+    return;
+  }
+
+  const { error: revenueError } = await supabase
+    .from("revenue_records")
+    .insert({
+      inventory_item_id: task.inventory_item_id,
+      item_title: task.item_title,
+      sale_price: task.listing_price,
+      commission_rate: 10,
+      commission_amount: (task.listing_price || 0) * 0.1,
+      seller_payout: (task.listing_price || 0) * 0.9,
+      revenue_status: "earned",
+    });
+
+  if (revenueError) {
+    setMessage(revenueError.message);
+    return;
+  }
+
+  setMessage("Item marked sold and revenue recorded.");
+}}
   className="bg-green-400 text-black rounded-xl px-4 py-2 text-sm font-semibold"
 >
   Mark Sold

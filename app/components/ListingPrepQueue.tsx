@@ -147,14 +147,23 @@ async function generateAiRelist(task: ListingPrepTask) {
     setMessage("Relist task update error: " + updateError.message);
     return;
   }
-  await supabase
+  const { data: existingPublishTask } = await supabase
   .from("marketplace_publish_tasks")
-  .insert({
-    inventory_item_id: inventoryItem.id,
-    item_title: inventoryItem.title,
-    listing_price: inventoryItem.price,
-    publish_status: "ready_to_publish",
-  });
+  .select("id")
+  .eq("inventory_item_id", inventoryItem.id)
+  .limit(1)
+  .single();
+
+if (!existingPublishTask) {
+  await supabase
+    .from("marketplace_publish_tasks")
+    .insert({
+      inventory_item_id: inventoryItem.id,
+      item_title: inventoryItem.title,
+      listing_price: inventoryItem.price,
+      publish_status: "ready_to_publish",
+    });
+}
 
   setMessage("AI relist generated and added to inventory.");
   await loadTasks();
