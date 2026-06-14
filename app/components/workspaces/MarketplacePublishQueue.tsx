@@ -197,10 +197,21 @@ async function saveUrls(task: PublishTask) {
     .limit(1)
     .single();
 
-  if (existingRevenue) {
-    setMessage("Revenue record already exists for this item.");
-    return;
-  }
+if (existingRevenue) {
+  await supabase
+    .from("exception_tasks")
+    .insert({
+      exception_type: "duplicate_revenue_attempt",
+      related_table: "revenue_records",
+      related_record_id: existingRevenue.id,
+      item_title: task.item_title,
+      exception_status: "open",
+      notes: `Duplicate revenue creation blocked for ${task.item_title}.`,
+    });
+
+  setMessage("Revenue record already exists for this item. Exception logged.");
+  return;
+}
 
   const { error: revenueError } = await supabase
     .from("revenue_records")

@@ -237,14 +237,52 @@ const generateBuyerMatches = async () => {
             outreach_status: "buyer_contacted",
           })
       }
+
+      const { data: existingNegotiation } = await supabase
+        .from("negotiation_tasks")
+        .select("id")
+        .eq("inventory_item_id", match.inventory_id)
+        .limit(1)
+        .single()
+
+      if (!existingNegotiation) {
+        await supabase
+          .from("negotiation_tasks")
+          .insert({
+            inventory_item_id: match.inventory_id,
+            item_title: match.inventory_title,
+            buyer_name: match.buyer_name,
+            listing_price: listingPrice,
+            current_offer: listingPrice,
+            negotiation_status: "pending",
+          })
+      }
+
+      const { data: existingPublishTask } = await supabase
+        .from("marketplace_publish_tasks")
+        .select("id")
+        .eq("inventory_item_id", match.inventory_id)
+        .limit(1)
+        .single()
+
+      if (!existingPublishTask) {
+        await supabase
+          .from("marketplace_publish_tasks")
+          .insert({
+            inventory_item_id: match.inventory_id,
+            item_title: match.inventory_title,
+            listing_price: listingPrice,
+            publish_status: "ready_to_publish",
+          })
+      }
     }
   }
 
-  alert("Buyer matches and outreach tasks generated from active inventory")
+  alert("Buyer matches, outreach tasks, negotiations, and publish tasks generated")
 }
-  return (
 
-    <div className="space-y-8">
+return (
+  <div className="space-y-8">
       {selectedDeal && (
   <DealModal
   deal={selectedDeal}

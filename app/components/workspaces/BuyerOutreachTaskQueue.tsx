@@ -75,8 +75,19 @@ export default function BuyerOutreachTaskQueue() {
     .single();
 
   if (existingNegotiation) {
-    setMessage("Negotiation task already exists.");
-  } else {
+  await supabase
+    .from("exception_tasks")
+    .insert({
+      exception_type: "duplicate_negotiation_attempt",
+      related_table: "negotiation_tasks",
+      related_record_id: existingNegotiation.id,
+      item_title: task.item_title,
+      exception_status: "open",
+      notes: `Duplicate negotiation creation blocked for ${task.item_title}.`,
+    });
+
+  setMessage("Negotiation task already exists. Exception logged.");
+} else {
     await supabase
       .from("negotiation_tasks")
       .insert({
