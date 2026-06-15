@@ -654,69 +654,6 @@ async function loadPhaseOneCounts() {
 
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-
-        <div className="flex items-center justify-between mb-6">
-
-            <h3 className="text-2xl font-semibold">
-              AI Deal Scanner
-            </h3>
-
-            <p className="text-zinc-400 mt-2">
-              Live marketplace arbitrage intelligence
-            </p>
-
-          </div>
-
-          <div className="bg-red-500/10 border border-red-500 px-4 py-2 rounded-2xl text-red-400 text-sm font-semibold">
-            Live Scanning
-          </div>
-
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-
-          {scannerDeals.map((deal, index) => (
-
-            <div
-              key={index}
-              className="bg-black border border-zinc-800 rounded-2xl p-5"
-            >
-
-              <div className="flex items-center justify-between mb-4">
-
-                <h4 className="font-semibold text-lg">
-                  {deal.title}
-                </h4>
-
-                <p className="text-green-400 font-bold">
-                  {deal.aiScore}
-                </p>
-
-              </div>
-
-              <p className="text-zinc-400 text-sm mb-4">
-                {deal.marketplace}
-              </p>
-
-              <div className="flex items-center justify-between">
-
-                <p className="text-cyan-400 font-semibold">
-                  {deal.spread}
-                </p>
-
-                <p className="text-zinc-500 text-sm">
-                  {deal.status}
-                </p>
-
-              </div>
-
-            </div>
-
-          ))}
-
-        </div>
-
       </div>
 
   )
