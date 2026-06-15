@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import RevenueQueue from "./RevenueQueue";
+import ExceptionQueue from "./ExceptionQueue";
 
 export default function RevenueWorkspace() {
   const [inventory, setInventory] = useState<any[]>([])
@@ -89,6 +91,9 @@ export default function RevenueWorkspace() {
           </div>
         </div>
       </div>
+<RevenueQueue />
+
+<ExceptionQueue />
 
       <div className="card-standard">
         <h3 className="text-2xl font-bold mb-6">

@@ -14,6 +14,9 @@ import AiPriorityQueue from "../deals/AiPriorityQueue"
 import AiPipelineStats from "../deals/AiPipelineStats"
 import BuyerMatchAgent from "../deals/BuyerMatchAgent"
 import BuyerOutreachPanel from './BuyerOutreachPanel';
+import BuyerOutreachTaskQueue from "./BuyerOutreachTaskQueue";
+import NegotiationQueue from "./NegotiationQueue";
+import MarketplacePublishQueue from "./MarketplacePublishQueue";
 
 export default function DealsWorkspace() {
 
@@ -373,7 +376,6 @@ setContactMessage("")
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
             Active Deals
           </h1>
-          <AiPipelineStats deals={inventory} />
     
         <BuyerMatchAgent
   matches={buyerMatches}
@@ -457,6 +459,7 @@ await supabase
 alert(`Buyer outreach sent and conversation created for ${match.buyer_name}`)
   }}
 />
+
           <AiPriorityQueue
   deals={inventory}
   onSelectDeal={(deal) => {
@@ -696,124 +699,6 @@ return (
         </div>
 
       </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-
-        <div className="xl:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-
-          <h3 className="text-2xl font-semibold mb-6">
-            Marketplace Sync Engine
-          </h3>
-
-          <div className="space-y-4">
-
-            <div className="bg-black border border-zinc-800 rounded-2xl p-5 flex items-center justify-between">
-
-              <div>
-
-                <h4 className="font-semibold text-lg">
-                  Facebook Marketplace
-                </h4>
-
-                <p className="text-zinc-400 text-sm mt-1">
-                  Inventory synchronization active
-                </p>
-
-              </div>
-
-              <div className="h-3 w-3 bg-green-400 rounded-full" />
-
-            </div>
-
-            <div className="bg-black border border-zinc-800 rounded-2xl p-5 flex items-center justify-between">
-
-              <div>
-
-                <h4 className="font-semibold text-lg">
-                  Craigslist
-                </h4>
-
-                <p className="text-zinc-400 text-sm mt-1">
-                  AI opportunity scanning active
-                </p>
-
-              </div>
-
-              <div className="h-3 w-3 bg-cyan-400 rounded-full" />
-
-            </div>
-
-            <div className="bg-black border border-zinc-800 rounded-2xl p-5 flex items-center justify-between">
-
-              <div>
-
-                <h4 className="font-semibold text-lg">
-                  OfferUp
-                </h4>
-
-                <p className="text-zinc-400 text-sm mt-1">
-                  Buyer demand analysis active
-                </p>
-
-              </div>
-
-              <div className="h-3 w-3 bg-purple-400 rounded-full" />
-
-            </div>
-
-          </div>
-
-        </div>
-
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-
-          <h3 className="text-2xl font-semibold mb-6">
-            AI Pipeline Status
-          </h3>
-
-          <div className="space-y-4">
-
-            <div className="bg-black border border-zinc-800 rounded-2xl p-4">
-
-              <p className="text-zinc-500 text-sm mb-2">
-                New Leads
-              </p>
-
-              <h4 className="text-3xl font-bold text-cyan-400">
-                24
-              </h4>
-
-            </div>
-
-            <div className="bg-black border border-zinc-800 rounded-2xl p-4">
-
-              <p className="text-zinc-500 text-sm mb-2">
-                Negotiating
-              </p>
-
-              <h4 className="text-3xl font-bold text-orange-400">
-                17
-              </h4>
-
-            </div>
-
-            <div className="bg-black border border-zinc-800 rounded-2xl p-4">
-
-              <p className="text-zinc-500 text-sm mb-2">
-                Ready To Close
-              </p>
-
-              <h4 className="text-3xl font-bold text-green-400">
-                9
-              </h4>
-
-            </div>
-
-          </div>
-
-    </div>
-
-        </div>
 
       </div>
   )

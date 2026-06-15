@@ -1,7 +1,15 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AiRelistQueue from '../seller/AiRelistQueue'
-import AIAcquisitionAgent from './AIAcquisitionAgent';
+import AIAcquisitionAgent from './AIAcquisitionAgent'
+import AcquisitionRunPanel from "../AcquisitionRunPanel";
+import SellerLeadQueue from "../SellerLeadQueue";
+import OutreachReadyQueue from "../OutreachReadyQueue";
+import OutreachTaskQueue from "../OutreachTaskQueue";
+import ContactedSellerQueue from "../ContactedSellerQueue";
+import SellerResponseQueue from "../SellerResponseQueue";
+import SellerApprovedQueue from "../SellerApprovedQueue";
+import ListingPrepQueue from "../ListingPrepQueue";
 
 type IngestionWorkspaceProps = {
   sellerSubmissions: any[]
@@ -68,11 +76,26 @@ useEffect(() => {
 
   <div className="space-y-8">
 
-    <AIAcquisitionAgent onLeadSent={onRefreshSubmissions} />
-
       <div className="flex items-center justify-between">
 
         <div>
+          <AcquisitionRunPanel />
+
+<AIAcquisitionAgent onLeadSent={onRefreshSubmissions} />
+
+<SellerLeadQueue />
+
+<OutreachReadyQueue />
+
+<OutreachTaskQueue />
+
+<ContactedSellerQueue />
+
+<SellerResponseQueue />
+
+<SellerApprovedQueue />
+
+<ListingPrepQueue />
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
             Marketplace Ingestion

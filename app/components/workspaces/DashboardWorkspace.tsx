@@ -16,6 +16,7 @@ import NegotiationQueue from "./NegotiationQueue";
 import MarketplacePublishQueue from "./MarketplacePublishQueue";
 import RevenueQueue from "./RevenueQueue";
 import ExceptionQueue from "./ExceptionQueue";
+import AgentOrchestrator from "./AgentOrchestrator";
 
 type DashboardWorkspaceProps = {
   sellerLeadCount: number
@@ -252,31 +253,6 @@ async function loadPhaseOneCounts() {
   </div>
 </div>
 
-    <AcquisitionRunPanel />
-
-    <OutreachTaskQueue />
-
-    <BuyerOutreachTaskQueue />
-
-    <NegotiationQueue />
-
-    <MarketplacePublishQueue />
-
-    <RevenueQueue />
-
-    <ExceptionQueue />
-
-    <OutreachReadyQueue />
-
-    <ContactedSellerQueue />
-
-    <SellerResponseQueue />
-
-    <SellerApprovedQueue />
-
-    <ListingPrepQueue />
-
-    <SellerLeadQueue />
 
       <div className="flex items-center justify-between">
 
@@ -291,6 +267,8 @@ async function loadPhaseOneCounts() {
           </p>
 
         </div>
+
+        <AgentOrchestrator />
 
         <div className="bg-green-500/10 border border-green-500 px-5 py-3 rounded-2xl">
 
