@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function AgentOrchestrator() {
@@ -70,7 +70,16 @@ newHealth.push({
     setLogs(newLogs);
     setRunning(false);
   };
+  useEffect(() => {
+    runAgents();
 
+    const interval = setInterval(() => {
+      runAgents();
+    }, 300000);
+
+    return () => clearInterval(interval);
+  }, []);
+  
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
       <div className="flex items-center justify-between mb-4">
