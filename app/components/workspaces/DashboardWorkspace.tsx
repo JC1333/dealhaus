@@ -268,8 +268,6 @@ async function loadPhaseOneCounts() {
 
         </div>
 
-        <AgentOrchestrator />
-
         <div className="bg-green-500/10 border border-green-500 px-5 py-3 rounded-2xl">
 
           <p className="text-green-400 font-semibold">
@@ -279,6 +277,9 @@ async function loadPhaseOneCounts() {
         </div>
 
       </div>
+
+      <AgentOrchestrator />
+      
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
   {dashboardStats.map((stat) => (
     <div
