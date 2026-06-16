@@ -26,6 +26,7 @@ export default function IngestionWorkspace({
 }: IngestionWorkspaceProps) {
   const [importedDeals, setImportedDeals] = useState<any[]>([])
   const [activeIngestionTab, setActiveIngestionTab] = useState('imports')
+  const [activeSellerTab, setActiveSellerTab] = useState('acquisition')
 
   useEffect(() => {
     const loadDeals = async () => {
@@ -230,21 +231,67 @@ export default function IngestionWorkspace({
 
       {activeIngestionTab === 'pipeline' && (
         <div className="space-y-8">
-          <AIAcquisitionAgent onLeadSent={onRefreshSubmissions} />
+          <div className="flex flex-wrap gap-3">
+  <button
+    onClick={() => setActiveSellerTab('acquisition')}
+    className={`px-5 py-2 rounded-xl font-semibold ${
+      activeSellerTab === 'acquisition'
+        ? 'bg-white text-black'
+        : 'bg-zinc-900 border border-zinc-700 text-white'
+    }`}
+  >
+    Acquisition
+  </button>
 
-          <AcquisitionRunPanel />
+  <button
+    onClick={() => setActiveSellerTab('outreach')}
+    className={`px-5 py-2 rounded-xl font-semibold ${
+      activeSellerTab === 'outreach'
+        ? 'bg-white text-black'
+        : 'bg-zinc-900 border border-zinc-700 text-white'
+    }`}
+  >
+    Outreach
+  </button>
 
-          <SellerLeadQueue />
+  <button
+    onClick={() => setActiveSellerTab('approval')}
+    className={`px-5 py-2 rounded-xl font-semibold ${
+      activeSellerTab === 'approval'
+        ? 'bg-white text-black'
+        : 'bg-zinc-900 border border-zinc-700 text-white'
+    }`}
+  >
+    Approval
+  </button>
+</div>
+          {activeSellerTab === "acquisition" && (
+  <>
+    <AIAcquisitionAgent onLeadSent={onRefreshSubmissions} />
 
-          <OutreachReadyQueue />
+    <AcquisitionRunPanel />
 
-          <OutreachTaskQueue />
+    <SellerLeadQueue />
+  </>
+)}
 
-          <ContactedSellerQueue />
+          {activeSellerTab === "outreach" && (
+  <>
+    <OutreachReadyQueue />
 
-          <SellerResponseQueue />
+    <OutreachTaskQueue />
 
-          <SellerApprovedQueue />
+    <ContactedSellerQueue />
+  </>
+)}
+
+         {activeSellerTab === "approval" && (
+  <>
+    <SellerResponseQueue />
+
+    <SellerApprovedQueue />
+  </>
+)}
         </div>
       )}
 
