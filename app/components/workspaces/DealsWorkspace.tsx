@@ -38,6 +38,8 @@ export default function DealsWorkspace() {
   const [outreachMessage, setOutreachMessage] = useState("")
   const [aiLogs, setAiLogs] = useState<any[]>([])
   const [buyerMatches, setBuyerMatches] = useState<any[]>([])
+  const [activeBuyerTab, setActiveBuyerTab] =
+  useState("matches")
 
   useEffect(() => {
   loadInventory()
@@ -376,8 +378,54 @@ setContactMessage("")
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
             Active Deals
           </h1>
-    
+    <div className="flex flex-wrap gap-3 mb-6">
+  <button
+    onClick={() => setActiveBuyerTab("matches")}
+    className={`px-5 py-2 rounded-xl font-semibold ${
+      activeBuyerTab === "matches"
+        ? "bg-white text-black"
+        : "bg-zinc-900 border border-zinc-700 text-white"
+    }`}
+  >
+    Buyer Matches
+  </button>
+
+  <button
+    onClick={() => setActiveBuyerTab("outreach")}
+    className={`px-5 py-2 rounded-xl font-semibold ${
+      activeBuyerTab === "outreach"
+        ? "bg-white text-black"
+        : "bg-zinc-900 border border-zinc-700 text-white"
+    }`}
+  >
+    Buyer Outreach
+  </button>
+
+  <button
+    onClick={() => setActiveBuyerTab("negotiation")}
+    className={`px-5 py-2 rounded-xl font-semibold ${
+      activeBuyerTab === "negotiation"
+        ? "bg-white text-black"
+        : "bg-zinc-900 border border-zinc-700 text-white"
+    }`}
+  >
+    Negotiation
+  </button>
+
+  <button
+    onClick={() => setActiveBuyerTab("publish")}
+    className={`px-5 py-2 rounded-xl font-semibold ${
+      activeBuyerTab === "publish"
+        ? "bg-white text-black"
+        : "bg-zinc-900 border border-zinc-700 text-white"
+    }`}
+  >
+    Marketplace Publish
+  </button>
+</div>
+
         <BuyerMatchAgent
+
   matches={buyerMatches}
   onGenerateBuyerMatches={generateBuyerMatches}
   onContactBuyer={async (match) => {
