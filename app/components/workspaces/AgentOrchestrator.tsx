@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 export default function AgentOrchestrator() {
   const [running, setRunning] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
+  const [autoRun, setAutoRun] = useState(true);
   const [health, setHealth] = useState<
   { agent: string; status: string; count: number }[]
 >([]);
@@ -75,11 +76,11 @@ newHealth.push({
 
     const interval = setInterval(() => {
       runAgents();
-    }, 300000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);
-  
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
       <div className="flex items-center justify-between mb-4">
