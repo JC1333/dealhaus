@@ -60,7 +60,7 @@ export default function AIAcquisitionAgent({
       .from('seller_leads')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(30);
+      .limit(3);
 
     if (error) {
       alert(error.message);

@@ -10,6 +10,7 @@ import ContactedSellerQueue from "../ContactedSellerQueue";
 import SellerResponseQueue from "../SellerResponseQueue";
 import SellerApprovedQueue from "../SellerApprovedQueue";
 import ListingPrepQueue from "../ListingPrepQueue";
+import MarketplaceImportEngine from "./MarketplaceImportEngine";
 
 type IngestionWorkspaceProps = {
   sellerSubmissions: any[]
@@ -79,6 +80,9 @@ useEffect(() => {
       <div className="flex items-center justify-between">
 
         <div>
+
+<MarketplaceImportEngine />
+
           <AcquisitionRunPanel />
 
 <AIAcquisitionAgent onLeadSent={onRefreshSubmissions} />
@@ -116,10 +120,11 @@ useEffect(() => {
         </div>
 
       </div>
+
       <AiRelistQueue
-        submissions={sellerSubmissions}
-        onGenerateListing={onGenerateListing}
-      />
+  submissions={sellerSubmissions.slice(0, 3)}
+  onGenerateListing={onGenerateListing}
+/>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 
         {sources.map((source, index) => (

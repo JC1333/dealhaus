@@ -27,12 +27,13 @@ export default function SellerApprovedQueue() {
     setLoading(true);
     setMessage("");
 
-    const { data, error } = await supabase
-      .from("seller_leads")
-      .select("*")
-      .eq("status", "seller_approved")
-      .order("acquisition_score", { ascending: false });
-
+   const { data, error } = await supabase
+  .from("seller_leads")
+  .select("*")
+  .eq("status", "seller_approved")
+  .order("acquisition_score", { ascending: false })
+  .limit(3);
+  
     if (error) {
       setMessage(error.message);
       setLoading(false);

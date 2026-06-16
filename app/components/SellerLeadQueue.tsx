@@ -31,7 +31,7 @@ export default function SellerLeadQueue() {
       .from("seller_leads")
       .select("*")
       .order("acquisition_score", { ascending: false })
-      .limit(20);
+      .limit(5);
 
     if (error) {
       setMessage(error.message);
