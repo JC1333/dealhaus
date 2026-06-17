@@ -23,6 +23,8 @@ import ExecutiveCommandCenter from './components/dashboard/ExecutiveCommandCente
 import AuthPanel from './components/auth/AuthPanel'
 import SellerOnboarding from './components/seller/SellerOnboarding'
 import AiRelistQueue from './components/seller/AiRelistQueue'
+import AcquisitionRunPanel from "./components/AcquisitionRunPanel";
+import WorkflowEngine from "./components/workflows/WorkflowEngine";
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
@@ -511,6 +513,7 @@ if (!user) {
 }
   return (
     <main className="min-h-screen bg-black text-white">
+      <WorkflowEngine />
       <div className="flex flex-col lg:flex-row">
 
         <aside className="w-full lg:w-72 lg:min-h-screen border-b lg:border-b-0 lg:border-r border-zinc-800 p-4 bg-zinc-950">
