@@ -143,10 +143,63 @@ export default function WorkflowEngine() {
         }
       }
     }
+let buyerMatchCreated = 0;
+let buyerMatchExisting = 0;
+let buyerMatchErrors = 0;
 
+const { data: activeInventory, error: inventoryError } = await supabase
+  .from("inventory")
+  .select("id,title,price,status")
+  .eq("status", "active")
+  .limit(5);
+
+if (inventoryError) {
+  buyerMatchErrors += 1;
+  console.log("Workflow inventory check error:", inventoryError.message);
+}
+
+if (activeInventory && activeInventory.length > 0) {
+  for (const item of activeInventory) {
+    const { data: existingMatch } = await supabase
+      .from("buyer_matches")
+      .select("id")
+      .eq("inventory_id", item.id)
+      .limit(1)
+      .single();
+
+    if (existingMatch) {
+      buyerMatchExisting += 1;
+      continue;
+    }
+
+    const { error: matchError } = await supabase.from("buyer_matches").insert({
+      inventory_id: item.id,
+      inventory_title: item.title,
+      buyer_name: "Workflow Qualified Buyer",
+      buyer_email: "workflow-buyer@dealhaus.local",
+      buyer_interest_score: 88,
+      outreach_status: "new",
+    });
+
+    if (matchError) {
+      buyerMatchErrors += 1;
+
+      await supabase.from("exception_tasks").insert({
+        exception_type: "workflow_buyer_match_failed",
+        related_table: "inventory",
+        related_record_id: item.id,
+        item_title: item.title,
+        exception_status: "open",
+        notes: matchError.message,
+      });
+    } else {
+      buyerMatchCreated += 1;
+    }
+  }
+}
     console.log(
-      `Workflow summary: approved=${approvedLeads?.length || 0}, alreadyPrepared=${alreadyPrepared}, created=${created}, relistExisting=${relistExisting}, relistCreated=${relistCreated}, errors=${errors + relistErrors}`
-    );
+  `Workflow summary: approved=${approvedLeads?.length || 0}, alreadyPrepared=${alreadyPrepared}, created=${created}, relistExisting=${relistExisting}, relistCreated=${relistCreated}, buyerMatchExisting=${buyerMatchExisting}, buyerMatchCreated=${buyerMatchCreated}, errors=${errors + relistErrors + buyerMatchErrors}`
+);
   }
 
   useEffect(() => {
