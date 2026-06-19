@@ -11,6 +11,10 @@ export default function WorkflowEngine() {
     let created = 0;
     let errors = 0;
 
+    let relistCreated = 0;
+    let relistExisting = 0;
+    let relistErrors = 0;
+
     const { data: approvedLeads, error } = await supabase
       .from("seller_leads")
       .select("id,item_title")
@@ -22,126 +26,127 @@ export default function WorkflowEngine() {
       return;
     }
 
-    if (!approvedLeads || approvedLeads.length === 0) {
-      console.log("Workflow summary: 0 approved sellers found");
-      return;
-    }
+    if (approvedLeads && approvedLeads.length > 0) {
+      for (const lead of approvedLeads) {
+        const { data: existingTask } = await supabase
+          .from("listing_prep_tasks")
+          .select("id")
+          .eq("seller_lead_id", lead.id)
+          .limit(1)
+          .single();
 
-    for (const lead of approvedLeads) {
-      const { data: existingTask } = await supabase
-        .from("listing_prep_tasks")
-        .select("id")
-        .eq("seller_lead_id", lead.id)
-        .limit(1)
-        .single();
+        if (existingTask) {
+          alreadyPrepared += 1;
+          continue;
+        }
 
-      if (existingTask) {
-        alreadyPrepared += 1;
-        continue;
+        const { error: insertError } = await supabase
+          .from("listing_prep_tasks")
+          .insert({
+            seller_lead_id: lead.id,
+            prep_status: "ready_for_relist",
+          });
+
+        if (insertError) {
+          errors += 1;
+
+          await supabase.from("exception_tasks").insert({
+            exception_type: "workflow_listing_prep_failed",
+            related_table: "seller_leads",
+            related_record_id: lead.id,
+            item_title: lead.item_title,
+            exception_status: "open",
+            notes: insertError.message,
+          });
+        } else {
+          created += 1;
+        }
       }
-
-      const { data: newPrepTask, error: insertError } = await supabase
-  .from("listing_prep_tasks")
-  .insert({
-    seller_lead_id: lead.id,
-    prep_status: "ready_for_relist",
-  })
-  .select()
-  .single();
-
-      if (insertError) {
-        errors += 1;
-
-        await supabase.from("exception_tasks").insert({
-          exception_type: "workflow_listing_prep_failed",
-          related_table: "seller_leads",
-          related_record_id: lead.id,
-          item_title: lead.item_title,
-          exception_status: "open",
-          notes: insertError.message,
-        });
-      } else {
-        created += 1;
-      }
-      if (newPrepTask) {
-  const { data: existingRelist } = await supabase
-    .from("ai_relist_tasks")
-    .select("id")
-    .eq("listing_prep_task_id", newPrepTask.id)
-    .limit(1)
-    .single();
-
-  if (!existingRelist) {
-    const { error: relistError } = await supabase
-      .from("ai_relist_tasks")
-      .insert({
-        listing_prep_task_id: newPrepTask.id,
-        relist_status: "pending",
-      });
-
-    if (relistError) {
-      console.log("AI Relist task creation error:", relistError.message);
-    } else {
-      console.log("Workflow created AI Relist task.");
     }
-  }
-}
-    }
-let relistCreated = 0;
-let relistExisting = 0;
-let relistErrors = 0;
 
-const { data: readyPrepTasks, error: prepError } = await supabase
-  .from("listing_prep_tasks")
-  .select("id")
-  .eq("prep_status", "ready_for_relist")
-  .limit(10);
-
-if (prepError) {
-  relistErrors += 1;
-  console.log("Workflow prep task sweep error:", prepError.message);
-}
-
-if (readyPrepTasks && readyPrepTasks.length > 0) {
-  for (const task of readyPrepTasks) {
-    const { data: existingRelist } = await supabase
-      .from("ai_relist_tasks")
+    const { data: readyPrepTasks, error: prepError } = await supabase
+      .from("listing_prep_tasks")
       .select("id")
-      .eq("listing_prep_task_id", task.id)
-      .limit(1)
-      .single();
+      .eq("prep_status", "ready_for_relist")
+      .limit(10);
 
-    if (existingRelist) {
-      relistExisting += 1;
-      continue;
-    }
-
-    const { error: relistError } = await supabase
-      .from("ai_relist_tasks")
-      .insert({
-        listing_prep_task_id: task.id,
-        relist_status: "pending",
-      });
-
-    if (relistError) {
+    if (prepError) {
       relistErrors += 1;
-
-      await supabase.from("exception_tasks").insert({
-        exception_type: "workflow_ai_relist_task_failed",
-        related_table: "listing_prep_tasks",
-        related_record_id: task.id,
-        item_title: "Listing Prep Task",
-        exception_status: "open",
-        notes: relistError.message,
-      });
-    } else {
-      relistCreated += 1;
+      console.log("Workflow prep task sweep error:", prepError.message);
     }
-  }
-}
+
+    if (readyPrepTasks && readyPrepTasks.length > 0) {
+      for (const task of readyPrepTasks) {
+        const { data: existingRelist } = await supabase
+          .from("ai_relist_tasks")
+          .select("id")
+          .eq("listing_prep_task_id", task.id)
+          .limit(1)
+          .single();
+
+        if (existingRelist) {
+          relistExisting += 1;
+          continue;
+        }
+
+        const { data: newRelistTask, error: relistError } = await supabase
+          .from("ai_relist_tasks")
+          .insert({
+            listing_prep_task_id: task.id,
+            relist_status: "pending",
+          })
+          .select()
+          .single();
+
+        if (relistError) {
+          relistErrors += 1;
+
+          await supabase.from("exception_tasks").insert({
+            exception_type: "workflow_ai_relist_task_failed",
+            related_table: "listing_prep_tasks",
+            related_record_id: task.id,
+            item_title: "Listing Prep Task",
+            exception_status: "open",
+            notes: relistError.message,
+          });
+
+          continue;
+        }
+
+        relistCreated += 1;
+
+        if (newRelistTask?.id) {
+          const response = await fetch("/api/generate-ai-relist", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              taskId: newRelistTask.id,
+            }),
+          });
+
+          if (!response.ok) {
+            relistErrors += 1;
+
+            await supabase.from("exception_tasks").insert({
+              exception_type: "workflow_generate_ai_relist_failed",
+              related_table: "ai_relist_tasks",
+              related_record_id: newRelistTask.id,
+              item_title: "AI Relist Task",
+              exception_status: "open",
+              notes: "Workflow failed to generate AI relist inventory item.",
+            });
+          } else {
+            console.log("Workflow generated AI relist inventory item.");
+          }
+        }
+      }
+    }
+
     console.log(
-  `Workflow summary: approved=${approvedLeads.length}, alreadyPrepared=${alreadyPrepared}, created=${created}, relistExisting=${relistExisting}, relistCreated=${relistCreated}, errors=${errors + relistErrors}`
-);
+      `Workflow summary: approved=${approvedLeads?.length || 0}, alreadyPrepared=${alreadyPrepared}, created=${created}, relistExisting=${relistExisting}, relistCreated=${relistCreated}, errors=${errors + relistErrors}`
+    );
   }
 
   useEffect(() => {
