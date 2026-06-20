@@ -225,12 +225,33 @@ if (existingRevenue) {
       revenue_status: "earned",
     });
 
-  if (revenueError) {
-    setMessage(revenueError.message);
-    return;
-  }
+ if (revenueError) {
+  setMessage(revenueError.message);
+  return;
+}
 
-  setMessage("Item marked sold and revenue recorded.");
+const { error: inventoryError } = await supabase
+  .from("inventory")
+  .update({
+    status: "closed",
+  })
+  .eq("id", task.inventory_item_id);
+
+if (inventoryError) {
+  await supabase.from("exception_tasks").insert({
+    exception_type: "inventory_close_failed_after_sale",
+    related_table: "inventory",
+    related_record_id: task.inventory_item_id,
+    item_title: task.item_title,
+    exception_status: "open",
+    notes: inventoryError.message,
+  });
+
+  setMessage("Revenue recorded, but inventory close failed. Exception logged.");
+  return;
+}
+
+setMessage("Item marked sold, inventory closed, and revenue recorded.");
 }}
   className="bg-green-400 text-black rounded-xl px-4 py-2 text-sm font-semibold"
 >
