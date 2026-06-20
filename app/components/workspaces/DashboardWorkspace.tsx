@@ -2,6 +2,7 @@
 
 import GoLiveChecklist from './GoLiveChecklist'
 import AgentOrchestrator from './AgentOrchestrator'
+import WorkflowMonitor from "./WorkflowMonitor";
 
 type DashboardWorkspaceProps = {
   sellerLeadCount: number
@@ -86,6 +87,7 @@ export default function DashboardWorkspace({
       </div>
 
       <AgentOrchestrator />
+      <WorkflowMonitor />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {dashboardStats.map((stat) => (
