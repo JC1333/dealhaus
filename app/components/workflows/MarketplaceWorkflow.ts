@@ -60,8 +60,15 @@ export async function runMarketplaceWorkflow() {
           notes: publishError.message,
         });
       } else {
-        marketplacePublishCreated += 1;
-      }
+  marketplacePublishCreated += 1;
+
+  await supabase
+    .from("negotiation_tasks")
+    .update({
+      negotiation_status: "sent_to_marketplace_publish",
+    })
+    .eq("id", task.id);
+}
     }
   }
 
