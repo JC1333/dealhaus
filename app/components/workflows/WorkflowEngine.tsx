@@ -6,6 +6,7 @@ import { runRelistWorkflow } from "./RelistWorkflow";
 import { runBuyerWorkflow } from "./BuyerWorkflow";
 import { runNegotiationWorkflow } from "./NegotiationWorkflow";
 import { runMarketplaceWorkflow } from "./MarketplaceWorkflow";
+import { runRevenueWorkflow } from "./RevenueWorkflow";
 
 export default function WorkflowEngine() {
   const [automationEnabled, setAutomationEnabled] = useState(false);
@@ -18,15 +19,17 @@ export default function WorkflowEngine() {
     const buyerWorkflow = await runBuyerWorkflow();
     const negotiationWorkflow = await runNegotiationWorkflow();
     const marketplaceWorkflow = await runMarketplaceWorkflow();
+    const revenueWorkflow = await runRevenueWorkflow();
 
-    console.log(
-      `Workflow summary: approved=${sellerWorkflow.approvedCount}, alreadyPrepared=${sellerWorkflow.alreadyPrepared}, created=${sellerWorkflow.created}, relistExisting=${relistWorkflow.relistExisting}, relistCreated=${relistWorkflow.relistCreated}, buyerMatchExisting=${buyerWorkflow.buyerMatchExisting}, buyerMatchCreated=${buyerWorkflow.buyerMatchCreated}, buyerOutreachExisting=${buyerWorkflow.buyerOutreachExisting}, buyerOutreachCreated=${buyerWorkflow.buyerOutreachCreated}, negotiationExisting=${negotiationWorkflow.negotiationExisting}, negotiationCreated=${negotiationWorkflow.negotiationCreated}, marketplacePublishExisting=${marketplaceWorkflow.marketplacePublishExisting}, marketplacePublishCreated=${marketplaceWorkflow.marketplacePublishCreated}, errors=${
+       console.log(
+      `Workflow summary: approved=${sellerWorkflow.approvedCount}, alreadyPrepared=${sellerWorkflow.alreadyPrepared}, created=${sellerWorkflow.created}, relistExisting=${relistWorkflow.relistExisting}, relistCreated=${relistWorkflow.relistCreated}, buyerMatchExisting=${buyerWorkflow.buyerMatchExisting}, buyerMatchCreated=${buyerWorkflow.buyerMatchCreated}, buyerOutreachExisting=${buyerWorkflow.buyerOutreachExisting}, buyerOutreachCreated=${buyerWorkflow.buyerOutreachCreated}, negotiationExisting=${negotiationWorkflow.negotiationExisting}, negotiationCreated=${negotiationWorkflow.negotiationCreated}, marketplacePublishExisting=${marketplaceWorkflow.marketplacePublishExisting}, marketplacePublishCreated=${marketplaceWorkflow.marketplacePublishCreated}, revenueExisting=${revenueWorkflow.revenueExisting}, revenueCreated=${revenueWorkflow.revenueCreated}, errors=${
         sellerWorkflow.errors +
         relistWorkflow.relistErrors +
         buyerWorkflow.buyerMatchErrors +
         buyerWorkflow.buyerOutreachErrors +
         negotiationWorkflow.negotiationErrors +
-        marketplaceWorkflow.marketplacePublishErrors
+        marketplaceWorkflow.marketplacePublishErrors +
+        revenueWorkflow.revenueErrors
       }`
     );
   }
