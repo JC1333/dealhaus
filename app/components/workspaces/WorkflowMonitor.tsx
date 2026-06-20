@@ -95,7 +95,7 @@ export default function WorkflowMonitor() {
 
     const interval = setInterval(() => {
       loadStats();
-    }, 60000);
+    }, 300000);
 
     return () => clearInterval(interval);
   }, []);
