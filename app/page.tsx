@@ -2,18 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import OutreachQueue from './components/dashboard/OutreachQueue'
-import NegotiationCenter from './components/dashboard/NegotiationCenter'
-import BuyerMatchEngine from './components/dashboard/BuyerMatchEngine'
-import AppointmentScheduler from './components/dashboard/AppointmentScheduler'
-import RevenueAnalytics from './components/dashboard/RevenueAnalytics'
-import AICRM from './components/dashboard/AICRM'
-import AutonomousAgents from './components/dashboard/AutonomousAgents'
-import ConversationCenter from './components/dashboard/ConversationCenter'
-import MarketplaceSync from './components/dashboard/MarketplaceSync'
-import DealPipelineAnalytics from './components/dashboard/DealPipelineAnalytics'
-import NotificationsCenter from './components/dashboard/NotificationsCenter'
-import CompactOpportunities from './components/dashboard/CompactOpportunities'
 import DashboardWorkspace from './components/workspaces/DashboardWorkspace'
 import DealsWorkspace from './components/workspaces/DealsWorkspace'
 import ConversationsWorkspace from './components/workspaces/ConversationsWorkspace'
@@ -22,8 +10,6 @@ import RevenueWorkspace from './components/workspaces/RevenueWorkspace'
 import ExecutiveCommandCenter from './components/dashboard/ExecutiveCommandCenter'
 import AuthPanel from './components/auth/AuthPanel'
 import SellerOnboarding from './components/seller/SellerOnboarding'
-import AiRelistQueue from './components/seller/AiRelistQueue'
-import AcquisitionRunPanel from "./components/AcquisitionRunPanel";
 import WorkflowEngine from "./components/workflows/WorkflowEngine";
 
 export default function Home() {
