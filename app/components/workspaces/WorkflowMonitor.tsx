@@ -92,12 +92,6 @@ export default function WorkflowMonitor() {
 
   useEffect(() => {
     loadStats();
-
-    const interval = setInterval(() => {
-      loadStats();
-    }, 300000);
-
-    return () => clearInterval(interval);
   }, []);
 
   return (
