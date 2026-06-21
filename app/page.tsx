@@ -13,6 +13,7 @@ import SellerOnboarding from './components/seller/SellerOnboarding'
 import WorkflowEngine from "./components/workflows/WorkflowEngine";
 import AppSidebar from './components/AppSidebar'
 import WorkspaceRouter from "./components/WorkspaceRouter";
+import PublicLaunchHome from './components/PublicLaunchHome'
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
@@ -536,6 +537,11 @@ if (!user) {
 />
           ) : (
             <div className="space-y-6">
+              <PublicLaunchHome
+  activeDealCount={activeDealCount}
+  projectedCommission={projectedCommission}
+  setActiveWorkspace={setActiveWorkspace}
+/>
               <SellerOnboarding
                 form={sellerOnboardingForm}
                 setForm={setSellerOnboardingForm}
