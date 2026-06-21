@@ -11,6 +11,7 @@ import ExecutiveCommandCenter from './components/dashboard/ExecutiveCommandCente
 import AuthPanel from './components/auth/AuthPanel'
 import SellerOnboarding from './components/seller/SellerOnboarding'
 import WorkflowEngine from "./components/workflows/WorkflowEngine";
+import AppSidebar from './components/AppSidebar'
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
@@ -502,62 +503,10 @@ if (!user) {
       <WorkflowEngine />
       <div className="flex flex-col lg:flex-row">
 
-        <aside className="w-full lg:w-72 lg:min-h-screen border-b lg:border-b-0 lg:border-r border-zinc-800 p-4 bg-zinc-950">
-        <h1 className="text-4xl lg:text-5xl font-black mb-8 tracking-tight leading-tight">
-         DealHaus AI
-        </h1>
-
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 text-zinc-300">
-<button
-  type="button"
-  onClick={() => setActiveWorkspace('global')}
-  className="w-full text-left bg-zinc-900 p-4 rounded-2xl border border-zinc-800 hover:border-cyan-500 transition"
->
-  Global Hub
-</button>
-
-  <button
-    type="button"
-    onClick={() => setActiveWorkspace('dashboard')}
-    className="w-full text-left bg-zinc-900 p-4 rounded-2xl border border-zinc-800 hover:border-cyan-500 transition"
-  >
-    Operations Dashboard
-  </button>
-
-  <button
-  type="button"
-    onClick={() => setActiveWorkspace('conversations')}
-    className="w-full text-left bg-zinc-900 p-4 rounded-2xl border border-zinc-800 hover:border-cyan-500 transition"
-  >
-    AI Conversations
-  </button>
-
-  <button
-  type="button"
-    onClick={() => setActiveWorkspace('deals')}
-    className="w-full text-left bg-zinc-900 p-4 rounded-2xl border border-zinc-800 hover:border-cyan-500 transition"
-  >
-    Active Deals
-  </button>
-
-  <button
-  type="button"
-    onClick={() => setActiveWorkspace('revenue')}
-    className="w-full text-left bg-zinc-900 p-4 rounded-2xl border border-zinc-800 hover:border-cyan-500 transition"
-  >
-    Revenue Analytics
-  </button>
-  <button
-  type="button"
-  onClick={() => setActiveWorkspace('ingestion')}
-  className="w-full text-left bg-zinc-900 p-4 rounded-2xl border border-zinc-800 hover:border-cyan-500 transition"
->
-  Marketplace Ingestion
-</button>
-
-</div>
-
-        </aside>
+       <AppSidebar
+  activeWorkspace={activeWorkspace}
+  setActiveWorkspace={setActiveWorkspace}
+/>
 
         <div className="flex-1 p-4 sm:p-6 lg:p-10">
           {activeWorkspace === 'dashboard' ? (
