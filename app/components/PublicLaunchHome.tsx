@@ -44,25 +44,6 @@ export default function PublicLaunchHome({
         </div>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-          <p className="text-3xl font-black">{activeDealCount}</p>
-          <p className="text-zinc-400 mt-2">Active Marketplace Deals</p>
-        </div>
-
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-          <p className="text-3xl font-black">
-            ${Math.round(projectedCommission).toLocaleString()}
-          </p>
-          <p className="text-zinc-400 mt-2">Projected DealHaus Commission</p>
-        </div>
-
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-          <p className="text-3xl font-black">10%</p>
-          <p className="text-zinc-400 mt-2">Standard Success Commission</p>
-        </div>
-      </section>
-
       <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-8">
         <h2 className="text-3xl font-bold">How DealHaus Works</h2>
 

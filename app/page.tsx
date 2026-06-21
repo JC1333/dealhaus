@@ -542,11 +542,6 @@ if (!user) {
   projectedCommission={projectedCommission}
   setActiveWorkspace={setActiveWorkspace}
 />
-              <SellerOnboarding
-                form={sellerOnboardingForm}
-                setForm={setSellerOnboardingForm}
-                onSubmit={submitSellerOnboarding}
-              />
     
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 mb-4">
                 <h3 className="text-2xl font-semibold mb-6">
