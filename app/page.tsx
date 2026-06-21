@@ -12,6 +12,7 @@ import AuthPanel from './components/auth/AuthPanel'
 import SellerOnboarding from './components/seller/SellerOnboarding'
 import WorkflowEngine from "./components/workflows/WorkflowEngine";
 import AppSidebar from './components/AppSidebar'
+import WorkspaceRouter from "./components/WorkspaceRouter";
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
