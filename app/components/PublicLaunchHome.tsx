@@ -1,5 +1,7 @@
 "use client";
 
+import PublicSellerSubmission from "./PublicSellerSubmission";
+
 type PublicLaunchHomeProps = {
   activeDealCount: number;
   projectedCommission: number;
@@ -169,6 +171,9 @@ export default function PublicLaunchHome({
           </button>
         </div>
       </section>
+
+      <PublicSellerSubmission />
+      
     </div>
   );
 }
