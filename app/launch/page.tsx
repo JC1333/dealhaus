@@ -31,10 +31,6 @@ export default function LaunchPage() {
     setListings(data || []);
   }
 
-  function goToSell() {
-    alert("Next step: we will connect this button to the Sell My Item page.");
-  }
-
   function importListing() {
     if (!facebookUrl) {
       alert("Paste your Facebook Marketplace listing URL first.");
@@ -48,24 +44,32 @@ export default function LaunchPage() {
     <main className="min-h-screen bg-black text-white">
       <header className="sticky top-0 z-40 border-b border-zinc-900 bg-black/90 backdrop-blur">
         <div className="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between">
-          <div className="text-2xl font-black">
-            DealHaus <span className="text-cyan-400">AI</span>
-          </div>
+          <div className="text-4xl md:text-5xl font-black tracking-tight">
+  DealHaus <span className="text-cyan-400">AI</span>
+</div>
 
-          <nav className="hidden md:flex items-center gap-8 text-sm text-zinc-300">
-            <a href="#deals" className="hover:text-white">Browse Deals</a>
-            <a href="#how" className="hover:text-white">How It Works</a>
-            <a href="#sellers" className="hover:text-white">For Sellers</a>
-            <a href="#buyers" className="hover:text-white">For Buyers</a>
-            <a href="#contact" className="hover:text-white">Contact</a>
+          <nav className="hidden md:flex items-center gap-10 text-lg font-semibold text-zinc-300">
+      <a href="#deals" className="hover:text-white">
+  Browse
+</a>
+
+<a href="/submit" className="hover:text-white">
+  Sell
+</a>
+
+<a href="#how" className="hover:text-white">
+  How It Works
+</a>
+
+<a href="#about" className="hover:text-white">
+  About
+</a>
+
+<a href="#contact" className="hover:text-white">
+  Contact
+</a>
           </nav>
 
-          <button
-            onClick={goToSell}
-            className="rounded-xl bg-green-400 px-5 py-3 font-bold text-black"
-          >
-            Sell My Item
-          </button>
         </div>
       </header>
 
@@ -115,12 +119,6 @@ export default function LaunchPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <button
-              onClick={goToSell}
-              className="rounded-xl bg-green-400 px-6 py-4 font-bold text-black"
-            >
-              Sell My Item
-            </button>
 
             <a
               href="#deals"

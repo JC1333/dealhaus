@@ -18,7 +18,7 @@ export default function HeroSection({
           DealHaus · AI Marketplace Brokerage
         </p>
 
-        <h1 className="mt-4 text-4xl md:text-6xl font-black leading-tight">
+        <h1 className="mt-4 text-4xl md:text-5xl xl:text-6xl font-black leading-tight">
           Sell Smarter. Reach More Buyers. Let DealHaus Do the Heavy Lifting.
         </h1>
 
@@ -34,7 +34,7 @@ export default function HeroSection({
 
         <div className="mt-8 flex flex-wrap gap-4">
           <a
-            href="/sell"
+            href="/submit"
             className="rounded-xl bg-green-400 px-7 py-4 font-bold text-black"
           >
             Get My Item Reviewed
