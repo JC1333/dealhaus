@@ -22,11 +22,12 @@ export default function LaunchPage() {
   }, []);
 
   async function loadListings() {
-    const { data } = await supabase
-      .from("inventory")
-      .select("id,title,price,image,seller_city,seller_state,status")
-      .eq("status", "active")
-      .limit(5);
+   const { data } = await supabase
+  .from("inventory")
+  .select("id,title,price,image,seller_city,seller_state,status,created_at")
+  .eq("status", "active")
+  .order("created_at", { ascending: false })
+  .limit(5);
 
     setListings(data || []);
   }
@@ -135,6 +136,7 @@ export default function LaunchPage() {
             <button className="text-cyan-400 text-sm font-bold">
               View all deals →
             </button>
+
           </div>
 
           <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
