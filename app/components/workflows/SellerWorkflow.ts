@@ -20,7 +20,7 @@ export async function runSellerWorkflow() {
   estimated_profit
 `)
     .eq("status", "seller_approved")
-    .limit(5);
+    .limit(100);
 
   if (error) {
     console.log("Workflow seller approval check error:", error.message);

@@ -9,7 +9,7 @@ export async function runRelistWorkflow() {
     .from("listing_prep_tasks")
     .select("id")
     .eq("prep_status", "ready_for_relist")
-    .limit(10);
+    .limit(100);
 
   if (prepError) {
     relistErrors += 1;
