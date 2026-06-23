@@ -8,7 +8,17 @@ export async function runSellerWorkflow() {
 
   const { data: approvedLeads, error } = await supabase
     .from("seller_leads")
-    .select("id,item_title")
+    .select(`
+  id,
+  item_title,
+  item_description,
+  seller_name,
+  seller_city,
+  seller_state,
+  seller_email,
+  asking_price,
+  estimated_profit
+`)
     .eq("status", "seller_approved")
     .limit(5);
 
@@ -40,11 +50,18 @@ export async function runSellerWorkflow() {
       }
 
       const { error: insertError } = await supabase
-        .from("listing_prep_tasks")
-        .insert({
-          seller_lead_id: lead.id,
-          prep_status: "ready_for_relist",
-        });
+  .from("listing_prep_tasks")
+  .insert({
+    seller_lead_id: lead.id,
+    item_title: lead.item_title,
+    item_description: lead.item_description,
+    seller_name: lead.seller_name,
+    seller_city: lead.seller_city,
+    seller_state: lead.seller_state,
+    asking_price: lead.asking_price,
+    estimated_profit: lead.estimated_profit,
+    prep_status: "ready_for_relist",
+  });
 
       if (insertError) {
         errors += 1;

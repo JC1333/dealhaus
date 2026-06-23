@@ -213,6 +213,27 @@ export default function AIAcquisitionAgent({
       status: 'submitted',
     });
 
+    const { data: existingPrepTask } = await supabase
+      .from('listing_prep_tasks')
+      .select('id')
+      .eq('seller_lead_id', lead.id)
+      .limit(1)
+      .single();
+
+    if (!existingPrepTask) {
+      const { error: prepError } = await supabase
+        .from('listing_prep_tasks')
+        .insert({
+          seller_lead_id: lead.id,
+          prep_status: 'ready_for_relist',
+        });
+
+      if (prepError) {
+        alert(prepError.message);
+        return;
+      }
+    }
+
     if (error) {
       alert(error.message);
       return;

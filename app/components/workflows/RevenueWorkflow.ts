@@ -9,7 +9,7 @@ export async function runRevenueWorkflow() {
     .from("marketplace_publish_tasks")
     .select("id, inventory_item_id, item_title, listing_price, publish_status")
     .eq("publish_status", "sold")
-    .limit(10);
+    .limit(100);
 
   if (soldError) {
     revenueErrors += 1;

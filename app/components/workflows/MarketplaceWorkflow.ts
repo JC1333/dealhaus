@@ -5,15 +5,15 @@ export async function runMarketplaceWorkflow() {
   let marketplacePublishExisting = 0;
   let marketplacePublishErrors = 0;
 
-  const { data: negotiationTasks, error: negotiationError } = await supabase
-    .from("negotiation_tasks")
-    .select("id, inventory_item_id, item_title, listing_price, negotiation_status")
-    .in("negotiation_status", ["pending", "accepted", "ready_to_publish"])
-    .limit(10);
+  const { data: activeInventory, error: inventoryError } = await supabase
+    .from("inventory")
+    .select("id, title, price, status")
+    .eq("status", "active")
+    .limit(100);
 
-  if (negotiationError) {
+  if (inventoryError) {
     marketplacePublishErrors += 1;
-    console.log("Workflow negotiation sweep error:", negotiationError.message);
+    console.log("Workflow inventory publish sweep error:", inventoryError.message);
 
     return {
       marketplacePublishCreated,
@@ -22,12 +22,12 @@ export async function runMarketplaceWorkflow() {
     };
   }
 
-  if (negotiationTasks && negotiationTasks.length > 0) {
-    for (const task of negotiationTasks) {
+  if (activeInventory && activeInventory.length > 0) {
+    for (const item of activeInventory) {
       const { data: existingPublishTask } = await supabase
         .from("marketplace_publish_tasks")
         .select("id")
-        .eq("inventory_item_id", task.inventory_item_id)
+        .eq("inventory_item_id", item.id)
         .limit(1)
         .single();
 
@@ -39,9 +39,9 @@ export async function runMarketplaceWorkflow() {
       const { error: publishError } = await supabase
         .from("marketplace_publish_tasks")
         .insert({
-          inventory_item_id: task.inventory_item_id,
-          item_title: task.item_title,
-          listing_price: task.listing_price || 0,
+          inventory_item_id: item.id,
+          item_title: item.title || "Marketplace Listing",
+          listing_price: item.price || 0,
           facebook_url: "",
           offerup_url: "",
           craigslist_url: "",
@@ -53,22 +53,15 @@ export async function runMarketplaceWorkflow() {
 
         await supabase.from("exception_tasks").insert({
           exception_type: "workflow_marketplace_publish_failed",
-          related_table: "negotiation_tasks",
-          related_record_id: task.id,
-          item_title: task.item_title,
+          related_table: "inventory",
+          related_record_id: item.id,
+          item_title: item.title || "Marketplace Listing",
           exception_status: "open",
           notes: publishError.message,
         });
       } else {
-  marketplacePublishCreated += 1;
-
-  await supabase
-    .from("negotiation_tasks")
-    .update({
-      negotiation_status: "sent_to_marketplace_publish",
-    })
-    .eq("id", task.id);
-}
+        marketplacePublishCreated += 1;
+      }
     }
   }
 

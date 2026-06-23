@@ -12,7 +12,7 @@ export async function runBuyerWorkflow() {
     .from("inventory")
     .select("id,title,price,status")
     .eq("status", "active")
-    .limit(5);
+    .limit(100);
 
   if (inventoryError) {
     buyerMatchErrors += 1;
@@ -66,7 +66,7 @@ export async function runBuyerWorkflow() {
       .from("buyer_matches")
       .select("id, inventory_id, inventory_title, buyer_name, buyer_email")
       .in("outreach_status", ["new", "buyer_contacted"])
-      .limit(10);
+      .limit(100);
 
   if (buyerMatchReadyError) {
     buyerOutreachErrors += 1;

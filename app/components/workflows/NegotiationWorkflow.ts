@@ -10,7 +10,7 @@ export async function runNegotiationWorkflow() {
       .from("buyer_outreach_tasks")
       .select("id, inventory_item_id, item_title, listing_price, buyer_name")
       .eq("outreach_status", "buyer_contacted")
-      .limit(10);
+      .limit(100);
 
   if (buyerOutreachReadyError) {
     negotiationErrors += 1;
