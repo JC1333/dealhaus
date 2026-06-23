@@ -106,7 +106,15 @@ export default function SubmitPage() {
             />
           </div>
 
-          <p className="mt-3 text-sm text-zinc-500">Step {step} of 5</p>
+         <div className="mt-5 flex items-center justify-between">
+  <p className="text-sm font-semibold text-cyan-400">
+    Step {step} of 5
+  </p>
+
+  <p className="text-sm text-zinc-500">
+    DealHaus Seller Review
+  </p>
+</div>
 
           <div className="mt-8">
             {step === 1 && (

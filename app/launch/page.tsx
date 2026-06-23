@@ -24,9 +24,9 @@ export default function LaunchPage() {
   async function loadListings() {
    const { data } = await supabase
   .from("inventory")
-  .select("id,title,price,image,seller_city,seller_state,status,created_at")
+  .select("id,title,price,image,seller_city,seller_state,status")
   .eq("status", "active")
-  .order("created_at", { ascending: false })
+  .order("id", { ascending: false })
   .limit(5);
 
     setListings(data || []);
