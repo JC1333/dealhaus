@@ -129,6 +129,46 @@ export default function LaunchPage() {
             </a>
           </div>
         </section>
+<section
+  id="about"
+  className="rounded-3xl border border-zinc-800 bg-zinc-950 p-7"
+>
+  <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+    <div>
+      <p className="text-cyan-400 text-sm font-bold uppercase">
+        Why Sellers Choose DealHaus
+      </p>
+
+      <h2 className="mt-2 text-3xl font-black">
+        Marketplace selling, made easier.
+      </h2>
+    </div>
+
+    <p className="max-w-2xl text-zinc-400">
+      DealHaus helps sellers save time, improve presentation, organize buyer
+      interest, and move listings forward with a success-based approach.
+    </p>
+  </div>
+
+  <div className="mt-7 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {[
+      ["No Upfront Listing Fee", "Submit your item for review without paying before it sells."],
+      ["AI-Assisted Pricing", "We help evaluate pricing, demand, and resale opportunity."],
+      ["Marketplace Reach", "DealHaus can help support Facebook Marketplace, OfferUp, Craigslist, and more."],
+      ["Buyer Interest Organized", "We help track serious interest and reduce unnecessary back-and-forth."],
+      ["Built on Integrity", "Clear communication, honest expectations, and a service-first approach."],
+      ["Success-Based Commission", "DealHaus earns only when a deal successfully closes."],
+    ].map(([title, text]) => (
+      <div
+        key={title}
+        className="rounded-2xl border border-zinc-800 bg-black p-5"
+      >
+        <p className="text-green-400 font-black">✓ {title}</p>
+        <p className="mt-2 text-sm text-zinc-400">{text}</p>
+      </div>
+    ))}
+  </div>
+</section>
 
         <section id="deals">
           <div className="flex items-center justify-between gap-4">
