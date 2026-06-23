@@ -59,7 +59,6 @@ export default function SubmitPage() {
       asking_price: Number(form.askingPrice || 0),
       seller_city: form.city,
       seller_state: form.state,
-      seller_zip: form.zip,
       platform: form.alreadyListed === "yes" ? "Existing Marketplace Listing" : "DealHaus Public Website",
       status: "new",
       lead_status: "new",
