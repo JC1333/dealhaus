@@ -29,7 +29,7 @@ export default function HeroSection({
         </p>
 
         <p className="mt-5 text-cyan-400 font-semibold">
-          Helping You Sell Smarter. Built on Integrity.
+         Helping You Sell Smarter. Built on Integrity. Guided by Faith. 
         </p>
 
         <div className="mt-8 flex flex-wrap gap-4">

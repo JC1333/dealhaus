@@ -91,12 +91,34 @@ export default function SubmitPage() {
           </p>
 
           <h1 className="mt-3 text-4xl md:text-5xl font-black">
-            Let’s review your item.
+            Get Your Item Professionally Reviewed
           </h1>
 
           <p className="mt-4 text-zinc-400">
-            Answer a few quick questions and DealHaus will review your item for marketplace demand, pricing, and buyer interest.
+            Our AI reviews every submission for pricing, demand, resale potential, and buyer interest before recommending the best selling strategy.
           </p>
+          <div className="mt-8 grid gap-3 md:grid-cols-3">
+  <div className="rounded-xl border border-zinc-800 bg-black p-4">
+    <p className="text-green-400 font-bold">✓ No Upfront Fees</p>
+    <p className="mt-2 text-sm text-zinc-400">
+      You only pay if DealHaus helps complete a successful sale.
+    </p>
+  </div>
+
+  <div className="rounded-xl border border-zinc-800 bg-black p-4">
+    <p className="text-cyan-400 font-bold">✓ AI Marketplace Review</p>
+    <p className="mt-2 text-sm text-zinc-400">
+      We analyze pricing, buyer demand, and listing quality before marketing your item.
+    </p>
+  </div>
+
+  <div className="rounded-xl border border-zinc-800 bg-black p-4">
+    <p className="text-yellow-400 font-bold">✓ Local Buyer Network</p>
+    <p className="mt-2 text-sm text-zinc-400">
+      DealHaus works to connect your item with qualified local buyers.
+    </p>
+  </div>
+</div>
 
           <div className="mt-8 h-2 rounded-full bg-zinc-800">
             <div

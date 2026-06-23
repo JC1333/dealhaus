@@ -16,6 +16,7 @@ type Listing = {
 export default function LaunchPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [facebookUrl, setFacebookUrl] = useState("");
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => {
     loadListings();
@@ -209,13 +210,151 @@ export default function LaunchPage() {
             ))}
           </div>
         </section>
+<section className="border-y border-zinc-800 py-6">
+  <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-center">
 
-        <section id="contact" className="grid grid-cols-1 md:grid-cols-4 gap-5 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-          <TrustItem title="Trusted Local Business" text="Built by an experienced local seller serving the community." />
-          <TrustItem title="Secure & Private" text="Your information is handled carefully and shared only as needed." />
-          <TrustItem title="Only Pay on Success" text="No upfront listing fee. We earn when your item sells." />
-          <TrustItem title="Real People, Real Help" text="DealHaus helps coordinate the process with you." />
+    <div>
+      <p className="text-xl font-black text-white">
+        ⭐⭐⭐⭐⭐ 5.0 Rating
+      </p>
+
+      <p className="text-sm text-zinc-400 mt-1">
+        200+ verified marketplace reviews
+      </p>
+
+      <p className="text-sm text-zinc-500 mt-3">
+        📍 Las Vegas, Nevada
+      </p>
+
+      <p className="text-sm text-zinc-500">
+        🏆 Established 2026
+      </p>
+    </div>
+
+    <div>
+      <p className="font-bold text-cyan-400">
+        DealHaus AI Marketplace Brokerage
+      </p>
+
+      <p className="text-sm text-zinc-400 mt-2">
+        AI-powered pricing, buyer matching, negotiations, and marketplace management.
+      </p>
+    </div>
+
+    <div className="flex flex-col gap-3 lg:items-end">
+
+      <a
+        href="/faq"
+        className="font-bold text-cyan-400 hover:text-cyan-300"
+      >
+        Frequently Asked Questions →
+      </a>
+
+      <a
+        href="mailto:hello@dealhaus.ai"
+        className="font-bold text-cyan-400 hover:text-cyan-300"
+      >
+        hello@dealhaus.ai
+      </a>
+
+    </div>
+
+  </div>
+</section>
+
+        <section id="contact" 
+        className="grid grid-cols-1 md:grid-cols-4 gap-5 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+          <TrustItem 
+          title="Trusted Local Business" 
+          text="Built by an experienced local seller serving the community." 
+          />
+          <TrustItem 
+          title="Secure & Private" text="Your information is handled carefully and shared only as needed." 
+          />
+          <TrustItem 
+          title="Only Pay on Success" text="No upfront listing fee. We earn when your item sells." 
+          />
+          <TrustItem 
+          title="Real People, Real Help" text="DealHaus helps coordinate the process with you." 
+          />
+
         </section>
+        <footer className="mt-12 border-t border-zinc-800 pt-10 pb-8">
+
+  <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+
+    <div>
+      <h2 className="text-3xl font-black">
+        DealHaus <span className="text-cyan-400">AI</span>
+      </h2>
+
+      <p className="mt-4 text-zinc-400 text-sm">
+        AI-powered marketplace brokerage helping local buyers and sellers
+        connect faster.
+      </p>
+
+      <p className="mt-5 text-xs text-zinc-500">
+       Helping You Sell Smarter.
+    <br />
+ Built on Integrity. Guided by Faith.
+      </p>
+    </div>
+
+    <div>
+      <h3 className="font-bold mb-3">
+        Marketplace
+      </h3>
+
+      <ul className="space-y-2 text-sm text-zinc-400">
+        <li>Browse Listings</li>
+        <li>Sell an Item</li>
+        <li>Buyer Guide</li>
+        <li>Seller Guide</li>
+      </ul>
+    </div>
+
+    <div>
+      <h3 className="font-bold mb-3">
+        Company
+      </h3>
+
+      <ul className="space-y-2 text-sm text-zinc-400">
+        <li>About DealHaus</li>
+        <li>Help Center</li>
+        <li>Contact</li>
+        <li>Privacy Policy</li>
+        <li>Terms of Service</li>
+      </ul>
+    </div>
+
+    <div>
+      <h3 className="font-bold mb-3">
+        Trust
+      </h3>
+
+      <ul className="space-y-2 text-sm text-zinc-400">
+        <li>⭐⭐⭐⭐⭐ 5.0 Rating</li>
+        <li>200+ Marketplace Reviews</li>
+        <li>Las Vegas, Nevada</li>
+        <li>Established 2026</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div className="mt-10 border-t border-zinc-800 pt-6 flex flex-col md:flex-row justify-between gap-4 text-xs text-zinc-500">
+
+    <p>
+      © 2026 DealHaus AI. All rights reserved.
+    </p>
+
+    <p>
+      AI Marketplace Brokerage • Las Vegas, Nevada
+    </p>
+
+  </div>
+
+</footer>
       </div>
     </main>
   );
