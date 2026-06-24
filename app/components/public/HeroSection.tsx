@@ -19,13 +19,11 @@ export default function HeroSection({
         </p>
 
         <h1 className="mt-4 text-4xl md:text-5xl xl:text-6xl font-black leading-tight">
-          Sell Smarter. Reach More Buyers. Let DealHaus Do the Heavy Lifting.
+          Sell Smarter with DealHaus
         </h1>
 
         <p className="mt-5 max-w-2xl text-zinc-300 text-lg">
-          DealHaus helps sellers market high-value items across multiple
-          marketplaces while organizing buyer inquiries, pricing, negotiations,
-          and deal coordination.
+          Helping local sellers reach more buyers with honest, success-based marketplace support.
         </p>
 
         <p className="mt-5 text-cyan-400 font-semibold">
