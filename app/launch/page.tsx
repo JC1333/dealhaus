@@ -81,24 +81,38 @@ export default function LaunchPage() {
   setFacebookUrl={setFacebookUrl}
   onImportListing={importListing}
 />
+      <section
+  id="sellers"
+  className="rounded-3xl border border-zinc-800 bg-zinc-950 p-7"
+>
+  <p className="text-cyan-400 text-sm font-bold uppercase">
+    Why Choose DealHaus
+  </p>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-5" id="sellers">
-          <InfoCard
-            title="We help you sell smarter."
-            eyebrow="For Sellers"
-            text="We evaluate demand, improve your listing, organize buyer interest, and help move the deal forward."
-          />
-          <InfoCard
-            title="Find better local deals."
-            eyebrow="For Buyers"
-            text="Browse curated marketplace opportunities without chasing scattered listings across multiple platforms."
-          />
-          <InfoCard
-            title="Less back-and-forth."
-            eyebrow="AI Assisted"
-            text="DealHaus helps with pricing, outreach, buyer screening, negotiations, and deal tracking."
-          />
-        </section>
+  <h2 className="mt-2 text-3xl font-black">
+    Built to help local sellers win.
+  </h2>
+
+  <div className="mt-7 grid grid-cols-1 md:grid-cols-3 gap-5">
+    <InfoCard
+      eyebrow="AI Pricing"
+      title="Smarter selling strategy"
+      text="DealHaus reviews pricing, demand, resale potential, and buyer interest before helping move your item forward."
+    />
+
+    <InfoCard
+      eyebrow="Buyer Support"
+      title="Less ghosting. More serious interest."
+      text="We help organize buyer outreach, conversations, negotiations, and next steps so sellers are not handling everything alone."
+    />
+
+    <InfoCard
+      eyebrow="Success Based"
+      title="No upfront listing fee"
+      text="DealHaus earns only when a deal successfully closes, keeping the service aligned with the seller."
+    />
+  </div>
+</section>
 
         <section id="how" className="space-y-6">
           <h2 className="text-center text-3xl font-black">How DealHaus Works</h2>
