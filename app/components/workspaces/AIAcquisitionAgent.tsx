@@ -27,6 +27,8 @@ type SellerLead = {
   commission_rate: number | null;
   approval_notes: string | null;
   acquisition_message: string | null;
+  acquisition_reason: string | null;
+  photo_urls: string[] | null;
   outreach_notes: string | null;
   ai_score: number | null;
 };
@@ -60,7 +62,7 @@ export default function AIAcquisitionAgent({
       .from('seller_leads')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(3);
+      .limit(100);
 
     if (error) {
       alert(error.message);
@@ -524,7 +526,32 @@ export default function AIAcquisitionAgent({
               <p className="text-sm text-zinc-300 mt-3">
                 {lead.item_description}
               </p>
+              {lead.photo_urls && lead.photo_urls.length > 0 && (
+  <div className="mt-4">
+    <p className="mb-2 text-sm font-bold text-cyan-400">
+      Seller Photos
+    </p>
 
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {lead.photo_urls.map((url, index) => (
+        <a
+          key={url}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900"
+        >
+          <img
+            src={url}
+            alt={`Seller uploaded photo ${index + 1}`}
+            className="h-40 w-full object-cover"
+          />
+        </a>
+      ))}
+    </div>
+  </div>
+)}
+       
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-4">
                 <div className="rounded-lg bg-zinc-900 p-3">
                   <p className="text-xs text-zinc-500">Seller Ask</p>

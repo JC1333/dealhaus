@@ -72,6 +72,7 @@ if (photos.length > 0) {
       asking_price: Number(form.askingPrice || 0),
       seller_city: form.city,
       seller_state: form.state,
+      photo_urls: uploadedPhotoUrls,
       platform: form.marketplaceUrl ? "Existing Marketplace Listing" : "DealHaus Public Website",
       status: "new",
       lead_status: "new",
