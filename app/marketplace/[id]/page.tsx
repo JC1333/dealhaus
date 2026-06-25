@@ -76,7 +76,7 @@ export default function ListingDetailPage() {
 
             <div className="mt-8 flex flex-wrap gap-3">
               <a
-                href={`mailto:hello@dealhaus.ai?subject=Interested in ${listing.title}`}
+                href={`/inquire/${listing.id}`}
                 className="rounded-xl bg-cyan-400 px-6 py-4 font-black text-black"
               >
                 Request Info

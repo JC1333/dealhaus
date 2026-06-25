@@ -51,7 +51,7 @@ export default function LaunchPage() {
 </div>
 
           <nav className="hidden md:flex items-center gap-10 text-lg font-semibold text-zinc-300">
-      <a href="#deals" className="hover:text-white">
+      <a href="/marketplace" className="hover:text-white">
   Browse
 </a>
 
@@ -137,7 +137,7 @@ export default function LaunchPage() {
           <div className="flex flex-wrap gap-3">
 
             <a
-              href="#deals"
+              href="/marketplace"
               className="rounded-xl border border-zinc-700 px-6 py-4 font-bold text-white"
             >
               Browse Deals
@@ -188,17 +188,21 @@ export default function LaunchPage() {
         <section id="deals">
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-3xl font-black">Latest Active Listings</h2>
-            <button className="text-cyan-400 text-sm font-bold">
-              View all deals →
-            </button>
+            <a
+  href="/marketplace"
+  className="text-cyan-400 text-sm font-bold hover:text-cyan-300"
+>
+  View all deals →
+</a>
 
           </div>
 
           <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
             {listings.map((item) => (
-              <div
+              <a
+  href={`/marketplace/${item.id}`}
                 key={item.id}
-                className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950"
+                className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 hover:border-cyan-500"
               >
                 <img
                   src={
@@ -220,7 +224,7 @@ export default function LaunchPage() {
                     {item.seller_city || "Location pending"} {item.seller_state || ""}
                   </p>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         </section>

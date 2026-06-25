@@ -39,7 +39,7 @@ export default function HeroSection({
           </a>
 
           <a
-            href="#deals"
+            href="/marketplace"
             className="rounded-xl border border-zinc-700 px-7 py-4 font-bold text-white hover:border-cyan-400"
           >
             Browse Deals
