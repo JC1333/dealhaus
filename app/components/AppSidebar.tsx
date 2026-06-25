@@ -10,9 +10,10 @@ export default function AppSidebar({
   setActiveWorkspace,
 }: AppSidebarProps) {
   const navItems = [
-    { key: "global", label: "Global Hub" },
+    { key: "global", label: "Marketplace" },
     { key: "dashboard", label: "Operations Dashboard" },
     { key: "conversations", label: "AI Conversations" },
+    { key: "buyerInquiries", label: "Buyer Inquiries" },
     { key: "deals", label: "Active Deals" },
     { key: "revenue", label: "Revenue Analytics" },
     { key: "ingestion", label: "Marketplace Ingestion" },

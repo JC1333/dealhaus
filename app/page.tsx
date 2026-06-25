@@ -14,6 +14,7 @@ import WorkflowEngine from "./components/workflows/WorkflowEngine";
 import AppSidebar from './components/AppSidebar'
 import WorkspaceRouter from "./components/WorkspaceRouter";
 import PublicLaunchHome from './components/PublicLaunchHome'
+import BuyerInquiriesWorkspace from "@/app/components/workspaces/BuyerInquiriesWorkspace";
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
@@ -535,6 +536,8 @@ if (!user) {
   onGenerateListing={generateAiRelistListing}
   onRefreshSubmissions={loadSellerSubmissions}
 />
+) : activeWorkspace === "buyerInquiries" ? (
+  <BuyerInquiriesWorkspace />
           ) : (
             <div className="space-y-6">
               <PublicLaunchHome
