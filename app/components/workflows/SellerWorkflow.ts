@@ -37,12 +37,13 @@ export async function runSellerWorkflow() {
 
   if (approvedLeads && approvedLeads.length > 0) {
     for (const lead of approvedLeads) {
-      const { data: existingTask } = await supabase
-        .from("listing_prep_tasks")
-        .select("id")
-        .eq("seller_lead_id", lead.id)
-        .limit(1)
-        .single();
+      const { data: existingTasks } = await supabase
+  .from("listing_prep_tasks")
+  .select("id")
+  .eq("seller_lead_id", lead.id)
+  .limit(1);
+
+const existingTask = existingTasks?.[0];
 
       if (existingTask) {
         alreadyPrepared += 1;
@@ -54,7 +55,6 @@ export async function runSellerWorkflow() {
   .insert({
     seller_lead_id: lead.id,
     item_title: lead.item_title,
-    item_description: lead.item_description,
     seller_name: lead.seller_name,
     seller_city: lead.seller_city,
     seller_state: lead.seller_state,
@@ -64,6 +64,7 @@ export async function runSellerWorkflow() {
   });
 
       if (insertError) {
+        console.log("Listing prep insert error:", insertError);
         errors += 1;
 
         await supabase.from("exception_tasks").insert({

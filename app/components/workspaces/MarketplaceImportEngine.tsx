@@ -120,7 +120,7 @@ export default function MarketplaceImportEngine() {
       agreement_accepted: false,
       commission_rate: commissionRate,
       approval_notes: "",
-      acquisition_message: `Hi, I help sellers get more exposure for quality furniture without the hassle of managing buyers. Your ${item.listing_title} looks like a strong fit for our buyer network. We can professionally relist it, handle buyer interest, and only take a commission if it sells.`,
+      acquisition_message: `Hi, I help sellers get more exposure for their marketplace listings without the hassle of managing buyer inquiries. Your ${item.listing_title} looks like a strong fit for our buyer network. We can professionally relist it, handle buyer interest, and only take a commission if it sells.`,
       outreach_notes: "",
       ai_score: item.ai_score,
     });

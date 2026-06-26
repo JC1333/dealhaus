@@ -91,7 +91,7 @@ export default function AIAcquisitionAgent({
 
     const acquisitionMessage = `Hi ${
       manualLead.seller_name || 'there'
-    }, I help sellers get more exposure for quality furniture without the hassle of managing buyers. Your ${
+    }, I help sellers get more exposure for marketplace listings without the hassle of managing buyer inquiries. Your ${
       manualLead.item_title
     } looks like a strong fit for our buyer network. We can professionally relist it, handle buyer interest, and only take a commission if it sells.`;
 

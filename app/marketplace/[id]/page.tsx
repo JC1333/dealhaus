@@ -56,40 +56,60 @@ export default function ListingDetailPage() {
             alt={listing.title || "DealHaus listing"}
             className="h-80 w-full object-cover"
           />
-
+          
           <div className="p-7">
             <p className="text-3xl font-black text-green-400">
               ${Number(listing.price || 0).toLocaleString()}
             </p>
 
-            <h1 className="mt-3 text-4xl font-black">
-              {listing.title || "DealHaus Listing"}
-            </h1>
+           <div className="flex flex-wrap items-center gap-3">
+  <span className="rounded-full bg-cyan-500/20 px-3 py-1 text-xs font-bold text-cyan-400">
+    Listed through DealHaus
+  </span>
 
-            <p className="mt-3 text-zinc-400">
-              {listing.seller_city || "Location pending"} {listing.seller_state || ""}
-            </p>
+  <span className="rounded-full bg-green-500/20 px-3 py-1 text-xs font-bold text-green-400">
+    Active Listing
+  </span>
+</div>
 
-            <p className="mt-6 text-zinc-300">
-              {listing.description || "Details coming soon."}
-            </p>
+<h1 className="mt-5 text-4xl font-black">
+  {listing.title || "DealHaus Listing"}
+</h1>
 
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a
-                href={`/inquire/${listing.id}`}
-                className="rounded-xl bg-cyan-400 px-6 py-4 font-black text-black"
-              >
-                Request Info
-              </a>
+<p className="mt-3 text-zinc-400">
+  📍 {listing.seller_city || "Location pending"} {listing.seller_state || ""}
+</p>
 
-              <a
-                href="/marketplace"
-                className="rounded-xl border border-zinc-700 px-6 py-4 font-bold text-white"
-              >
-                Browse More Deals
-              </a>
-            </div>
-          </div>
+<div className="mt-6 rounded-2xl border border-zinc-800 bg-black p-5">
+  <h2 className="font-black text-white">Listing Details</h2>
+  <p className="mt-3 text-zinc-300">
+    {listing.description || "Details coming soon."}
+  </p>
+</div>
+
+<div className="mt-6 rounded-2xl border border-zinc-800 bg-black p-5">
+  <h2 className="font-black text-white">DealHaus Support</h2>
+  <p className="mt-2 text-sm text-zinc-400">
+    DealHaus helps organize buyer interest, seller communication, and next steps for this listing.
+  </p>
+</div>
+
+<div className="mt-8 flex flex-wrap gap-3">
+  <a
+    href={`/inquire/${listing.id}`}
+    className="rounded-xl bg-cyan-400 px-6 py-4 font-black text-black hover:bg-cyan-300"
+  >
+    Request Info
+  </a>
+
+  <a
+    href="/marketplace"
+    className="rounded-xl border border-zinc-700 px-6 py-4 font-bold text-white hover:border-cyan-400"
+  >
+    Browse More Deals
+  </a>
+</div>
+</div>
         </section>
       </div>
     </main>

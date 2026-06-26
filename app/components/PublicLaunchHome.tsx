@@ -24,7 +24,7 @@ export default function PublicLaunchHome({
 
         <p className="text-zinc-300 text-lg mt-6 max-w-3xl">
           DealHaus helps local sellers price, list, market, and coordinate
-          serious buyer interest for quality furniture, patio sets, appliances,
+          serious buyer interest for furniture, patio sets, appliances.
           home goods, and other marketplace items.
         </p>
 

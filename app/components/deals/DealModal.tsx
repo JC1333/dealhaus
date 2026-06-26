@@ -25,7 +25,7 @@ export default function DealModal({
 
   const buyerMessage =
     deal.buyer_outreach_message ||
-    `Hi, I saw you're interested in quality furniture. We have ${deal.title} available now for $${deal.price || 0}. Let me know if you'd like details or want to schedule a pickup.`
+    `Hi, I saw you're interested in this item. We have ${deal.title} available now for $${deal.price || 0}. Let me know if you'd like details or want to schedule a pickup.`
 
   async function updateBuyerStatus(status: string) {
     const { error } = await supabase

@@ -115,18 +115,44 @@ async function generateAiRelist(task: ListingPrepTask) {
   setMessage("Creating inventory item...");
 
   const generatedTask = result.task;
+  const { data: photoTask } = await supabase
+  .from("ai_relist_tasks")
+  .select(`
+    id,
+    listing_prep_tasks (
+      seller_leads (
+        photo_urls
+      )
+    )
+  `)
+  .eq("id", generatedTask.id)
+  .single();
+
+const rawSellerLead = (photoTask as any)?.listing_prep_tasks?.seller_leads;
+const photoSellerLead = Array.isArray(rawSellerLead) ? rawSellerLead[0] : rawSellerLead;
+
+const fallbackImage =
+  "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=1200&auto=format&fit=crop";
+
+const inventoryImages =
+  Array.isArray(photoSellerLead?.photo_urls) && photoSellerLead.photo_urls.length > 0
+    ? photoSellerLead.photo_urls
+    : [fallbackImage];
+  console.log("Generated AI relist task:", generatedTask);
 
   const { data: inventoryItem, error: inventoryError } = await supabase
     .from("inventory")
-    .insert({
-      title: generatedTask.ai_title,
-      description: generatedTask.ai_description,
-      price: generatedTask.ai_price_recommendation,
-      status: "active",
-      seller_name: generatedTask.seller_name,
-      asking_price: generatedTask.asking_price,
-      profit_score: generatedTask.estimated_profit,
-    })
+   .insert({
+  title: generatedTask.ai_title,
+  description: generatedTask.ai_description,
+  price: generatedTask.ai_price_recommendation,
+  status: "active",
+  seller_name: generatedTask.seller_name,
+  asking_price: generatedTask.asking_price,
+  profit_score: generatedTask.estimated_profit,
+  image: inventoryImages[0],
+  images: inventoryImages,
+})
     .select()
     .single();
 

@@ -19,8 +19,8 @@ export default function BuyerOutreachPanel({
 
   const buyerMessage =
     deal.buyer_outreach_message ||
-    `Hi, I saw you're interested in quality furniture. We have ${
-      deal.title || 'this item'
+   `Hi, I saw you're interested in this item. We have ${
+  deal.title || 'this item'
     } available now. It is listed at $${deal.price || 0}. Let me know if you would like more details or want to schedule a pickup.`;
 
   async function updateBuyerStatus(status: string) {
