@@ -87,6 +87,62 @@ export default function BuyerInquiriesWorkspace() {
             <p className="mt-1 text-white">
               {item.message}
             </p>
+            
+<div className="mt-5 flex flex-wrap gap-3">
+  <button
+    type="button"
+    onClick={async () => {
+      const { error } = await supabase.from("buyer_conversations").insert({
+        inventory_id: item.listing_id,
+        inventory_title: `Listing ${item.listing_id}`,
+        buyer_name: item.buyer_name || "Buyer",
+        buyer_email: item.buyer_email || "",
+        last_message: item.message || "",
+        conversation_stage: "buyer_inquiry",
+        unread_count: 1,
+      });
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      await supabase
+        .from("buyer_inquiries")
+        .update({ status: "converted_to_conversation" })
+        .eq("id", item.id);
+
+      alert("Buyer inquiry converted to conversation.");
+      loadInquiries();
+    }}
+    className="rounded-xl bg-cyan-400 px-5 py-3 font-bold text-black hover:bg-cyan-300"
+  >
+    Convert to Conversation
+  </button>
+
+  <button
+    type="button"
+    onClick={async () => {
+      alert("Mark Contacted clicked");
+
+      const { error } = await supabase
+        .from("buyer_inquiries")
+        .update({ status: "contacted" })
+        .eq("id", item.id);
+
+      if (error) {
+        alert("Mark contacted failed: " + error.message);
+        return;
+      }
+
+      alert("Inquiry marked contacted.");
+      loadInquiries();
+    }}
+    className="rounded-xl border border-zinc-700 px-5 py-3 font-bold text-white hover:border-cyan-400"
+  >
+    Mark Contacted
+  </button>
+</div>
 
           </div>
         </div>
