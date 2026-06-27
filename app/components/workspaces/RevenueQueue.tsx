@@ -123,14 +123,14 @@ export default function RevenueQueue() {
               <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
                 <p className="text-xs text-zinc-500">DealHaus Commission</p>
                 <p className="text-xl font-bold text-green-400">
-                  ${record.commission_amount ?? 0}
+                  ${Number(record.commission_amount || 0).toFixed(2)}
                 </p>
               </div>
 
               <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
                 <p className="text-xs text-zinc-500">Seller Payout</p>
                 <p className="text-xl font-bold">
-                  ${record.seller_payout ?? 0}
+                  ${Number(record.seller_payout || 0).toFixed(2)}
                 </p>
               </div>
             </div>
