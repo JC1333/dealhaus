@@ -269,11 +269,13 @@ export default function LaunchPage() {
       </a>
 
       <a
-        href="mailto:hello@dealhaus.ai"
-        className="font-bold text-cyan-400 hover:text-cyan-300"
-      >
-        hello@dealhaus.ai
-      </a>
+  href="https://mail.google.com/mail/u/0/?view=cm&fs=1&to=hello@dealhaus.us"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="hover:text-cyan-300 transition-colors"
+>
+  hello@dealhaus.us
+</a>
 
     </div>
 
@@ -318,18 +320,18 @@ export default function LaunchPage() {
       </p>
     </div>
 
-    <div>
-      <h3 className="font-bold mb-3">
-        Marketplace
-      </h3>
+   <div>
+  <h3 className="font-bold mb-3">
+    Marketplace
+  </h3>
 
-      <ul className="space-y-2 text-sm text-zinc-400">
-        <li>Browse Listings</li>
-        <li>Sell an Item</li>
-        <li>Buyer Guide</li>
-        <li>Seller Guide</li>
-      </ul>
-    </div>
+ <ul className="space-y-2 text-sm text-zinc-400">
+  <li><a href="/marketplace" className="hover:text-cyan-400">Browse Listings</a></li>
+  <li><a href="/submit" className="hover:text-cyan-400">Sell an Item</a></li>
+  <li><a href="/faq" className="hover:text-cyan-400">Buyer Guide</a></li>
+  <li><a href="/faq" className="hover:text-cyan-400">Seller Guide</a></li>
+</ul>
+</div>
 
     <div>
       <h3 className="font-bold mb-3">
@@ -337,12 +339,12 @@ export default function LaunchPage() {
       </h3>
 
       <ul className="space-y-2 text-sm text-zinc-400">
-        <li>About DealHaus</li>
-        <li>Help Center</li>
-        <li>Contact</li>
-        <li>Privacy Policy</li>
-        <li>Terms of Service</li>
-      </ul>
+  <li><a href="/launch#about" className="hover:text-cyan-400">About DealHaus</a></li>
+  <li><a href="/faq" className="hover:text-cyan-400">Help Center</a></li>
+  <li><a href="/contact" className="hover:text-cyan-400">Contact</a></li>
+  <li><a href="/privacy" className="hover:text-cyan-400">Privacy Policy</a></li>
+  <li><a href="/terms" className="hover:text-cyan-400">Terms of Service</a></li>
+</ul>
     </div>
 
     <div>
@@ -366,9 +368,29 @@ export default function LaunchPage() {
       © 2026 DealHaus AI. All rights reserved.
     </p>
 
-    <p>
-      AI Marketplace Brokerage • Las Vegas, Nevada
-    </p>
+    <div className="text-right">
+  <p>AI Marketplace Brokerage • Las Vegas, Nevada</p>
+
+  <div className="mt-1 flex flex-wrap justify-end items-center gap-2 text-cyan-400">
+
+    <a
+      href="mailto:hello@dealhaus.us"
+      className="hover:text-cyan-300 transition-colors"
+    >
+      hello@dealhaus.us
+    </a>
+
+    <span className="text-zinc-500">•</span>
+
+    <a
+      href="tel:+17026081303"
+      className="hover:text-cyan-300 transition-colors"
+    >
+      (702) 608-1303
+    </a>
+
+  </div>
+</div>
 
   </div>
 
