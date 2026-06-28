@@ -63,21 +63,32 @@ const existingTask = existingTasks?.[0];
     prep_status: "ready_for_relist",
   });
 
-      if (insertError) {
-        console.log("Listing prep insert error:", insertError);
-        errors += 1;
+     if (insertError) {
+  console.log("Listing prep insert error:", insertError);
+  errors += 1;
 
-        await supabase.from("exception_tasks").insert({
-          exception_type: "workflow_listing_prep_failed",
-          related_table: "seller_leads",
-          related_record_id: lead.id,
-          item_title: lead.item_title,
-          exception_status: "open",
-          notes: insertError.message,
-        });
-      } else {
-        created += 1;
-      }
+  const { data: existingException } = await supabase
+    .from("exception_tasks")
+    .select("id")
+    .eq("exception_type", "workflow_listing_prep_failed")
+    .eq("related_table", "seller_leads")
+    .eq("related_record_id", lead.id)
+    .eq("exception_status", "open")
+    .limit(1);
+
+  if (!existingException || existingException.length === 0) {
+    await supabase.from("exception_tasks").insert({
+      exception_type: "workflow_listing_prep_failed",
+      related_table: "seller_leads",
+      related_record_id: lead.id,
+      item_title: lead.item_title,
+      exception_status: "open",
+      notes: insertError.message,
+    });
+  }
+} else {
+  created += 1;
+}
     }
   }
 

@@ -63,18 +63,19 @@ export default function AuthPanel({
           >
             {authMode === "login" ? "Log In" : "Create Account"}
           </button>
+          {authMode === "login" && (
+  <button
+    type="button"
+    className="mt-3 w-full text-center text-sm text-cyan-400 hover:text-cyan-300"
+  >
+    Forgot your password?
+  </button>
+)}
         </div>
 
-        <button
-          onClick={() =>
-            setAuthMode(authMode === "login" ? "signup" : "login")
-          }
-          className="mt-6 text-sm text-zinc-400 hover:text-white"
-        >
-          {authMode === "login"
-            ? "Need an account? Sign up"
-            : "Already have an account? Log in"}
-        </button>
+        <p className="mt-6 text-center text-sm text-zinc-500">
+  This is a private DealHaus administrator portal.
+</p>
       </div>
     </div>
   )

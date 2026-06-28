@@ -18,6 +18,7 @@ import BuyerInquiriesWorkspace from "@/app/components/workspaces/BuyerInquiriesW
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [authEmail, setAuthEmail] = useState('')
@@ -95,27 +96,54 @@ export default function Home() {
     },
   ]
   useEffect(() => {
-    const loadUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      setUser(user)
-      setAuthLoading(false)
-    }
-
-    loadUser()
-
+  const loadUser = async () => {
     const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
+      data: { user },
+    } = await supabase.auth.getUser()
 
-    return () => {
-      subscription.unsubscribe()
+    setUser(user)
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single()
+
+      setIsAdmin(profile?.is_admin === true)
+    } else {
+      setIsAdmin(false)
     }
-  }, [])
+
+    setAuthLoading(false)
+  }
+
+  loadUser()
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const currentUser = session?.user ?? null
+
+    setUser(currentUser)
+
+    if (currentUser) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', currentUser.id)
+        .single()
+
+      setIsAdmin(profile?.is_admin === true)
+    } else {
+      setIsAdmin(false)
+    }
+  })
+
+  return () => {
+    subscription.unsubscribe()
+  }
+}, [])
 
   const handleAuthSubmit = async () => {
     if (!authEmail || !authPassword) {
@@ -501,9 +529,48 @@ if (!user) {
     />
   )
 }
+if (user && isAdmin === false) {
+  return (
+    <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+      <div className="max-w-md rounded-3xl border border-red-900 bg-red-950/20 p-8 text-center">
+        <p className="text-red-400 text-sm font-bold uppercase">
+          Access Denied
+        </p>
+
+        <h1 className="mt-3 text-3xl font-black">
+          Admin access required
+        </h1>
+
+        <p className="mt-4 text-zinc-400">
+          This area is restricted to approved DealHaus administrators.
+        </p>
+        <button
+  type="button"
+  onClick={() => alert("Logout clicked")}
+  className="mt-6 rounded-xl bg-red-500 px-5 py-3 font-bold text-white hover:bg-red-400"
+>
+  Sign Out
+</button>
+      </div>
+    </main>
+  )
+}
+
   return (
     <main className="min-h-screen bg-black text-white">
       <WorkflowEngine />
+      <div className="flex justify-end p-4">
+  <button
+    type="button"
+    onClick={async () => {
+      await supabase.auth.signOut()
+      window.location.href = "/admin"
+    }}
+    className="rounded-xl border border-red-500 px-4 py-2 font-bold text-red-400 hover:bg-red-500 hover:text-white"
+  >
+    Logout
+  </button>
+</div>
       <div className="flex flex-col lg:flex-row">
 
        <AppSidebar
