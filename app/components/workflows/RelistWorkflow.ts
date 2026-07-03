@@ -18,17 +18,16 @@ export async function runRelistWorkflow() {
 
   if (readyPrepTasks && readyPrepTasks.length > 0) {
     for (const task of readyPrepTasks) {
-      const { data: existingRelist } = await supabase
-        .from("ai_relist_tasks")
-        .select("id")
-        .eq("listing_prep_task_id", task.id)
-        .limit(1)
-        .single();
+      const { data: existingRelistTasks } = await supabase
+  .from("ai_relist_tasks")
+  .select("id")
+  .eq("listing_prep_task_id", task.id)
+  .limit(1);
 
-      if (existingRelist) {
-        relistExisting += 1;
-        continue;
-      }
+if (existingRelistTasks && existingRelistTasks.length > 0) {
+  relistExisting += 1;
+  continue;
+}
 
       const { data: newRelistTask, error: relistError } = await supabase
         .from("ai_relist_tasks")

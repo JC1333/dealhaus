@@ -22,17 +22,16 @@ export async function runNegotiationWorkflow() {
 
   if (buyerOutreachReady && buyerOutreachReady.length > 0) {
     for (const task of buyerOutreachReady) {
-      const { data: existingNegotiation } = await supabase
-        .from("negotiation_tasks")
-        .select("id")
-        .eq("inventory_item_id", task.inventory_item_id)
-        .limit(1)
-        .single();
+      const { data: existingNegotiations } = await supabase
+  .from("negotiation_tasks")
+  .select("id")
+  .eq("inventory_item_id", task.inventory_item_id)
+  .limit(1);
 
-      if (existingNegotiation) {
-        negotiationExisting += 1;
-        continue;
-      }
+if (existingNegotiations && existingNegotiations.length > 0) {
+  negotiationExisting += 1;
+  continue;
+}
 
       const { error: negotiationError } = await supabase
         .from("negotiation_tasks")

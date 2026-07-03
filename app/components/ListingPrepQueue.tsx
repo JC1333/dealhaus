@@ -42,16 +42,20 @@ export default function ListingPrepQueue() {
   }
 
   async function markReadyForRelist(task: ListingPrepTask) {
-    const { error } = await supabase
-      .from("listing_prep_tasks")
-      .update({ prep_status: "ready_for_relist" })
-      .eq("id", task.id);
+  setMessage("Creating AI relist task...");
 
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
+  const { data: existingTasks, error: checkError } = await supabase
+    .from("ai_relist_tasks")
+    .select("id")
+    .eq("listing_prep_task_id", task.id)
+    .limit(1);
 
+  if (checkError) {
+    setMessage("AI relist check error: " + checkError.message);
+    return;
+  }
+
+  if (!existingTasks || existingTasks.length === 0) {
     const { error: relistError } = await supabase
       .from("ai_relist_tasks")
       .insert({
@@ -60,17 +64,29 @@ export default function ListingPrepQueue() {
         item_title: task.item_title,
         seller_name: task.seller_name,
         asking_price: task.asking_price,
-        estimated_profit: task.estimated_profit,
+        estimated_profit: task.estimated_profit || 0,
         relist_status: "pending",
       });
 
     if (relistError) {
-      setMessage(relistError.message);
+      setMessage("AI relist insert error: " + relistError.message);
       return;
     }
-
-    await loadTasks();
   }
+
+  const { error: prepError } = await supabase
+    .from("listing_prep_tasks")
+    .update({ prep_status: "ready_for_relist" })
+    .eq("id", task.id);
+
+  if (prepError) {
+    setMessage("Prep update error: " + prepError.message);
+    return;
+  }
+
+  setMessage("AI relist task created.");
+  await loadTasks();
+}
 
 async function generateAiRelist(task: ListingPrepTask) {
   setMessage("Finding AI relist task...");
@@ -138,7 +154,6 @@ const inventoryImages =
   Array.isArray(photoSellerLead?.photo_urls) && photoSellerLead.photo_urls.length > 0
     ? photoSellerLead.photo_urls
     : [fallbackImage];
-  console.log("Generated AI relist task:", generatedTask);
 
   const { data: inventoryItem, error: inventoryError } = await supabase
     .from("inventory")

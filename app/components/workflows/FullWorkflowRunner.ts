@@ -6,11 +6,17 @@ import { runMarketplaceWorkflow } from "./MarketplaceWorkflow";
 import { runRevenueWorkflow } from "./RevenueWorkflow";
 
 export async function runFullWorkflow() {
+  
   const sellerWorkflow = await runSellerWorkflow();
+
   const relistWorkflow = await runRelistWorkflow();
+
   const buyerWorkflow = await runBuyerWorkflow();
+
   const negotiationWorkflow = await runNegotiationWorkflow();
+
   const marketplaceWorkflow = await runMarketplaceWorkflow();
+
   const revenueWorkflow = await runRevenueWorkflow();
 
   const totalErrors =

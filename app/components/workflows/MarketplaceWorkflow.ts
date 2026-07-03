@@ -24,17 +24,16 @@ export async function runMarketplaceWorkflow() {
 
   if (activeInventory && activeInventory.length > 0) {
     for (const item of activeInventory) {
-      const { data: existingPublishTask } = await supabase
-        .from("marketplace_publish_tasks")
-        .select("id")
-        .eq("inventory_item_id", item.id)
-        .limit(1)
-        .single();
+      const { data: existingPublishTasks } = await supabase
+  .from("marketplace_publish_tasks")
+  .select("id")
+  .eq("inventory_item_id", item.id)
+  .limit(1);
 
-      if (existingPublishTask) {
-        marketplacePublishExisting += 1;
-        continue;
-      }
+if (existingPublishTasks && existingPublishTasks.length > 0) {
+  marketplacePublishExisting += 1;
+  continue;
+}
 
       const { error: publishError } = await supabase
         .from("marketplace_publish_tasks")

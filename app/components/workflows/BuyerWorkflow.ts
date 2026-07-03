@@ -21,17 +21,16 @@ export async function runBuyerWorkflow() {
 
   if (activeInventory && activeInventory.length > 0) {
     for (const item of activeInventory) {
-      const { data: existingMatch } = await supabase
-        .from("buyer_matches")
-        .select("id")
-        .eq("inventory_id", item.id)
-        .limit(1)
-        .single();
+      const { data: existingMatches } = await supabase
+  .from("buyer_matches")
+  .select("id")
+  .eq("inventory_id", item.id)
+  .limit(1);
 
-      if (existingMatch) {
-        buyerMatchExisting += 1;
-        continue;
-      }
+if (existingMatches && existingMatches.length > 0) {
+  buyerMatchExisting += 1;
+  continue;
+}
 
       const { error: matchError } = await supabase
         .from("buyer_matches")
@@ -75,17 +74,16 @@ export async function runBuyerWorkflow() {
 
   if (buyerMatchesReady && buyerMatchesReady.length > 0) {
     for (const match of buyerMatchesReady) {
-      const { data: existingBuyerTask } = await supabase
-        .from("buyer_outreach_tasks")
-        .select("id")
-        .eq("inventory_item_id", match.inventory_id)
-        .limit(1)
-        .single();
+      const { data: existingBuyerTasks } = await supabase
+  .from("buyer_outreach_tasks")
+  .select("id")
+  .eq("inventory_item_id", match.inventory_id)
+  .limit(1);
 
-      if (existingBuyerTask) {
-        buyerOutreachExisting += 1;
-        continue;
-      }
+if (existingBuyerTasks && existingBuyerTasks.length > 0) {
+  buyerOutreachExisting += 1;
+  continue;
+}
 
       const { error: buyerTaskError } = await supabase
         .from("buyer_outreach_tasks")

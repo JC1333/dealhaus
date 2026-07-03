@@ -67,13 +67,19 @@ export default function DealsWorkspace() {
   }, [])
 
   async function loadInventory() {
-    const { data } = await supabase
-      .from('inventory')
-      .select('*')
-      .order('id', { ascending: false })
+  const { data, error } = await supabase
+    .from('inventory')
+    .select('*')
+    .order('id', { ascending: false })
 
-    setInventory(data || [])
+  if (error) {
+    alert('Inventory load error: ' + error.message)
+    setInventory([])
+    return
   }
+
+  setInventory(data || [])
+}
 
   async function loadConversations() {
     const { data, error } = await supabase
@@ -98,16 +104,21 @@ export default function DealsWorkspace() {
   }
 
   async function loadBuyerMatches() {
-    const { data, error } = await supabase
-      .from('buyer_matches')
-      .select('*')
-      .order('id', { ascending: false })
-      .limit(20)
 
-    if (!error && data) {
-      setBuyerMatches(data)
-    }
+  const { data, error } = await supabase
+    .from('buyer_matches')
+    .select('*')
+    .order('id', { ascending: false })
+    .limit(20)
+
+  if (error) {
+    alert('Buyer matches load error: ' + error.message)
+    setBuyerMatches([])
+    return
   }
+
+  setBuyerMatches(data || [])
+}
 
   const filteredDeals = inventory
     .filter((item) => item.status !== 'closed')
@@ -197,12 +208,23 @@ Would you like us to help you find a buyer?
   }, [selectedDeal, outreachMessage])
 
   const generateBuyerMatches = async () => {
-    if (!inventory || inventory.length === 0) {
+    const { data: freshInventory, error: freshInventoryError } = await supabase
+  .from('inventory')
+  .select('*')
+  .eq('status', 'active')
+  .order('id', { ascending: false })
+
+if (freshInventoryError) {
+  alert('Fresh inventory load error: ' + freshInventoryError.message)
+  return
+}
+
+if (!freshInventory || freshInventory.length === 0) {
       alert('No active deals available for buyer matching')
       return
     }
 
-    const activeDeals = inventory
+    const activeDeals = freshInventory
       .filter((deal) => deal.status === 'active')
       .slice(0, 5)
 
@@ -226,11 +248,13 @@ Would you like us to help you find a buyer?
       .select()
 
     if (error) {
-      alert(error.message)
-      return
-    }
+  alert('Buyer match insert error: ' + error.message)
+  return
+}
 
-    if (data) {
+alert('Buyer matches inserted: ' + (data?.length || 0))
+
+if (data) {
       setBuyerMatches((prev) => [...data, ...prev])
 
       for (const match of data) {
@@ -245,16 +269,24 @@ Would you like us to help you find a buyer?
           .single()
 
         if (!existingBuyerTask) {
-          await supabase.from('buyer_outreach_tasks').insert({
-            inventory_item_id: match.inventory_id,
-            item_title: match.inventory_title,
-            listing_price: listingPrice,
-            buyer_name: match.buyer_name,
-            buyer_platform: 'Facebook Marketplace',
-            outreach_message: `Hi ${match.buyer_name}, DealHaus found a listing you may be interested in: ${match.inventory_title}. Would you like details?`,
-            outreach_status: 'buyer_contacted',
-          })
-        }
+  const { error: buyerTaskError } = await supabase
+    .from('buyer_outreach_tasks')
+    .insert({
+      inventory_item_id: match.inventory_id,
+      item_title: match.inventory_title,
+      listing_price:
+        inventory.find((deal) => deal.id === match.inventory_id)?.price || 0,
+      buyer_name: match.buyer_name,
+      buyer_platform: 'Facebook Marketplace',
+      outreach_message: `Hi ${match.buyer_name}, DealHaus found a listing you may be interested in: ${match.inventory_title}. Would you like details?`,
+      outreach_status: 'buyer_contacted',
+    })
+
+  if (buyerTaskError) {
+    alert('Buyer outreach task error: ' + buyerTaskError.message)
+    return
+  }
+}
 
         const { data: existingNegotiation } = await supabase
           .from('negotiation_tasks')
@@ -295,83 +327,74 @@ Would you like us to help you find a buyer?
     alert('Buyer matches, outreach tasks, negotiations, and publish tasks generated')
   }
 
-  async function contactBuyer(match: any) {
-    const { error } = await supabase
-      .from('buyer_matches')
-      .update({
-        outreach_status: 'contacted',
-      })
-      .eq('id', match.id)
+ async function contactBuyer(match: any) {
+  const buyerMessage = `Hi ${match.buyer_name}, DealHaus found a listing you may be interested in: ${match.inventory_title}. Would you like details?`
 
-    if (error) {
-      alert(error.message)
-      return
-    }
+  const { error: matchError } = await supabase
+    .from('buyer_matches')
+    .update({ outreach_status: 'contacted' })
+    .eq('id', match.id)
 
-    setBuyerMatches((prev) =>
-      prev.map((item) =>
-        item.id === match.id ? { ...item, outreach_status: 'contacted' } : item
-      )
-    )
-
-    const { data: existingBuyerTask } = await supabase
-      .from('buyer_outreach_tasks')
-      .select('id')
-      .eq('inventory_item_id', match.inventory_id)
-      .limit(1)
-      .single()
-
-    if (!existingBuyerTask) {
-      await supabase.from('buyer_outreach_tasks').insert({
-        inventory_item_id: match.inventory_id,
-        item_title: match.inventory_title,
-        listing_price:
-          inventory.find((deal) => deal.id === match.inventory_id)?.price || 0,
-        buyer_name: match.buyer_name,
-        buyer_platform: 'Facebook Marketplace',
-        outreach_message: `Hi ${match.buyer_name}, DealHaus found a listing you may be interested in: ${match.inventory_title}. Would you like details?`,
-        outreach_status: 'buyer_contacted',
-      })
-    }
-
-    if (existingBuyerTask) {
-      await supabase.from('exception_tasks').insert({
-        exception_type: 'duplicate_buyer_outreach_attempt',
-        related_table: 'buyer_outreach_tasks',
-        related_record_id: existingBuyerTask.id,
-        item_title: match.inventory_title,
-        exception_status: 'open',
-        notes: `Duplicate buyer outreach blocked for ${match.buyer_name} on ${match.inventory_title}.`,
-      })
-    }
-
-    const { error: conversationError } = await supabase
-      .from('buyer_conversations')
-      .insert({
-        inventory_id: match.inventory_id,
-        inventory_title: match.inventory_title,
-        buyer_name: match.buyer_name,
-        buyer_email: match.buyer_email,
-        last_message: `Hi ${match.buyer_name}, DealHaus found a listing you may be interested in: ${match.inventory_title}. Would you like details?`,
-        conversation_stage: 'buyer_contacted',
-        unread_count: 1,
-      })
-
-    if (conversationError) {
-      alert(conversationError.message)
-      return
-    }
-
-    await supabase
-      .from('inventory')
-      .update({
-        deal_stage: 'contacted',
-      })
-      .eq('id', match.inventory_id)
-
-    alert(`Buyer outreach sent and conversation created for ${match.buyer_name}`)
+  if (matchError) {
+    alert('Buyer match update error: ' + matchError.message)
+    return
   }
 
+  const listingPrice =
+    inventory.find((deal) => deal.id === match.inventory_id)?.price || 0
+
+  const { error: taskError } = await supabase
+    .from('buyer_outreach_tasks')
+    .insert({
+      inventory_item_id: match.inventory_id,
+      item_title: match.inventory_title,
+      listing_price: listingPrice,
+      buyer_name: match.buyer_name,
+      buyer_platform: 'Facebook Marketplace',
+      outreach_message: buyerMessage,
+      outreach_status: 'buyer_contacted',
+    })
+
+  if (taskError) {
+    alert('Buyer outreach task error: ' + taskError.message)
+    return
+  }
+
+  const { error: conversationError } = await supabase
+    .from('buyer_conversations')
+    .insert({
+      inventory_id: match.inventory_id,
+      inventory_title: match.inventory_title,
+      buyer_name: match.buyer_name,
+      buyer_email: match.buyer_email,
+      last_message: buyerMessage,
+      conversation_stage: 'buyer_contacted',
+      unread_count: 1,
+    })
+
+  if (conversationError) {
+    alert('Buyer conversation error: ' + conversationError.message)
+    return
+  }
+
+  const { error: inventoryError } = await supabase
+    .from('inventory')
+    .update({ deal_stage: 'contacted' })
+    .eq('id', match.inventory_id)
+
+  if (inventoryError) {
+    alert('Inventory update error: ' + inventoryError.message)
+    return
+  }
+
+  setBuyerMatches((prev) =>
+    prev.map((item) =>
+      item.id === match.id ? { ...item, outreach_status: 'contacted' } : item
+    )
+  )
+
+  alert(`Buyer outreach sent and conversation created for ${match.buyer_name}`)
+}
   return (
     <div className="space-y-8">
       {selectedDeal && (

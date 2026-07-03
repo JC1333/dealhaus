@@ -166,94 +166,85 @@ export default function AIAcquisitionAgent({
   }
 
   async function approveSellerAgreement(lead: SellerLead) {
-    const { error } = await supabase
-      .from('seller_leads')
-      .update({
-        lead_status: 'approved',
-        approval_status: 'approved',
-        agreement_accepted: true,
-        commission_rate: lead.commission_rate || 15,
-      })
-      .eq('id', lead.id);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    await loadLeads();
-  }
-
-  async function sendToRelistQueue(lead: SellerLead) {
-    if (lead.approval_status !== 'approved' || !lead.agreement_accepted) {
-      alert('Seller must be approved and agreement accepted first.');
-      return;
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      alert('Please log in first.');
-      return;
-    }
-
-    const { error } = await supabase.from('seller_onboarding').insert({
-      user_id: user.id,
-      seller_name: lead.seller_name || 'Marketplace Seller',
-      seller_email: lead.seller_email || 'seller@example.com',
-      seller_phone: lead.seller_phone || '',
-      item_title: lead.item_title,
-      item_description: lead.item_description || '',
-      asking_price: Number(lead.asking_price || 0),
-      city: lead.seller_city || '',
-      state: lead.seller_state || '',
-      zip: '',
+  const { data, error } = await supabase
+    .from('seller_leads')
+    .update({
+      status: 'seller_approved',
+      lead_status: 'approved',
+      approval_status: 'approved',
       agreement_accepted: true,
-      commission_rate: Number(lead.commission_rate || 15),
-      status: 'submitted',
-    });
+      commission_rate: Number(lead.commission_rate || 10),
+    })
+    .eq('id', lead.id)
+    .select();
 
-    const { data: existingPrepTask } = await supabase
+  if (error) {
+    alert('Approval error: ' + error.message);
+    return;
+  }
+
+  alert('Seller approved. Rows updated: ' + (data?.length || 0));
+
+  await loadLeads();
+}
+
+ async function sendToRelistQueue(lead: SellerLead) {
+  if (lead.approval_status !== 'approved' || !lead.agreement_accepted) {
+    alert('Seller must be approved and agreement accepted first.');
+    return;
+  }
+
+  const { data: existingPrepTask, error: checkError } = await supabase
+    .from('listing_prep_tasks')
+    .select('id')
+    .eq('seller_lead_id', lead.id)
+    .limit(1);
+
+  if (checkError) {
+    alert('Prep check error: ' + checkError.message);
+    return;
+  }
+
+  if (!existingPrepTask || existingPrepTask.length === 0) {
+    const { error: prepError } = await supabase
       .from('listing_prep_tasks')
-      .select('id')
-      .eq('seller_lead_id', lead.id)
-      .limit(1)
-      .single();
+      .insert({
+        seller_lead_id: lead.id,
+        item_title: lead.item_title,
+        seller_name: lead.seller_name,
+        seller_city: lead.seller_city,
+        seller_state: lead.seller_state,
+        asking_price: Number(lead.asking_price || 0),
+        prep_status: 'ready_for_relist',
+      });
 
-    if (!existingPrepTask) {
-      const { error: prepError } = await supabase
-        .from('listing_prep_tasks')
-        .insert({
-          seller_lead_id: lead.id,
-          prep_status: 'ready_for_relist',
-        });
-
-      if (prepError) {
-        alert(prepError.message);
-        return;
-      }
-    }
-
-    if (error) {
-      alert(error.message);
+    if (prepError) {
+      alert('Listing prep error: ' + prepError.message);
       return;
     }
-
-    await supabase
-      .from('seller_leads')
-      .update({ lead_status: 'sent_to_relist_queue' })
-      .eq('id', lead.id);
-
-    await loadLeads();
-
-    if (onLeadSent) {
-      onLeadSent();
-    }
-
-    alert('Seller lead sent to AI Relist Queue.');
   }
+
+  const { error: updateError } = await supabase
+    .from('seller_leads')
+    .update({
+      status: 'sent_to_relist_queue',
+      lead_status: 'sent_to_relist_queue',
+    })
+    .eq('id', lead.id);
+
+  if (updateError) {
+    alert('Lead update error: ' + updateError.message);
+    return;
+  }
+
+  await loadLeads();
+
+  if (onLeadSent) {
+    onLeadSent();
+  }
+
+  alert('Seller lead sent to AI Relist Queue.');
+}
 
   return (
     <section className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">

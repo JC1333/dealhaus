@@ -24,17 +24,16 @@ export async function runRevenueWorkflow() {
 
   if (soldPublishTasks && soldPublishTasks.length > 0) {
     for (const task of soldPublishTasks) {
-      const { data: existingRevenue } = await supabase
-        .from("revenue_records")
-        .select("id")
-        .eq("inventory_item_id", task.inventory_item_id)
-        .limit(1)
-        .single();
+      const { data: existingRevenueRecords } = await supabase
+  .from("revenue_records")
+  .select("id")
+  .eq("inventory_item_id", task.inventory_item_id)
+  .limit(1);
 
-      if (existingRevenue) {
-        revenueExisting += 1;
-        continue;
-      }
+if (existingRevenueRecords && existingRevenueRecords.length > 0) {
+  revenueExisting += 1;
+  continue;
+}
 
       const salePrice = task.listing_price || 0;
 

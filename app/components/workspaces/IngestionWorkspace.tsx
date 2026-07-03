@@ -299,10 +299,7 @@ export default function IngestionWorkspace({
         <div className="space-y-8">
           <ListingPrepQueue />
 
-          <AiRelistQueue
-            submissions={sellerSubmissions.slice(0, 3)}
-            onGenerateListing={onGenerateListing}
-          />
+          <AiRelistQueue />
         </div>
       )}
     </div>
