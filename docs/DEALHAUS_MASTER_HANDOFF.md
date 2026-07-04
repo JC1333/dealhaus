@@ -1,109 +1,141 @@
 # DEALHAUS MASTER HANDOFF
-## MASTER CONTINUITY DOCUMENT
-### Version: 1.0
-### Status: PRE-LAUNCH
-### Last Updated: July 2, 2026
+# PROJECT BIBLE
+## Version 3.0 — Launch Candidate
+### Status: PRE-LAUNCH (Core Platform Verified)
+### Last Updated: July 3, 2026
 
 ---
 
 # 🚨 READ THIS FIRST
 
-This document is the **single source of truth** for the DealHaus project.
+This document is the permanent operating manual for the DealHaus project.
 
-Every new ChatGPT conversation MUST read and follow this document before making suggestions, writing code, modifying files, or proposing architecture changes.
+It replaces all previous handoffs.
 
-Do not assume anything.
+Every future ChatGPT session MUST read this document before making suggestions, writing code, modifying files, or proposing architectural changes.
 
-Verify existing code before editing.
+This document exists so new GPT sessions can immediately continue development without rediscovering the project.
 
-Do not recreate files that already exist.
+The actual DealHaus project is always the source of truth.
 
-Do not redesign working architecture.
+When documentation and code disagree, verify the code.
 
-The goal is to continue development exactly where the previous session ended.
+Never guess.
+
+Never redesign verified architecture.
+
+Never recreate files that already exist.
 
 ---
 
 # TABLE OF CONTENTS
 
-1. Read This First
-2. Project Summary
-3. Company Vision
-4. Development Philosophy
-5. Development Rules
-6. Current Project Status
-7. Development Priorities
-8. Verified Project State
-9. Verified Application Architecture
-10. Verified Database Architecture
-11. Verified API Architecture
-12. Verified File Architecture
-13. Verified Runtime Data Flow
-14. Verified Launch Readiness Checklist
-15. Verified Git & Recovery Procedure
-16. Future GPT Startup Protocol
-17. Session Update Log
+1. Executive Summary
+2. Company Vision
+3. Development Philosophy
+4. Permanent Development Rules
+5. Current Project Status
+6. Verified Platform Architecture
+7. Verified Database Architecture
+8. Verified Workflow Architecture
+9. Verified Runtime Data Flow
+10. Verified Admin Workspaces
+11. Verified Public Website
+12. Verified API Architecture
+13. Verified Launch Status
+14. Verified Brokerage Lifecycle
+15. Verified Automation Status
+16. Verified Database State
+17. Launch Checklist
+18. Git Recovery Procedure
+19. Future GPT Startup Protocol
+20. Post Launch Roadmap
 
-# PROJECT SUMMARY
+---
+
+# EXECUTIVE SUMMARY
 
 Project Name:
+
 DealHaus
 
 Platform Type:
+
 AI-Powered Marketplace Brokerage
 
 Business Model:
-Commission-based marketplace broker.
 
-DealHaus never owns inventory.
+DealHaus does not own inventory.
 
-Instead, DealHaus uses AI to:
+Instead, AI automates nearly every stage of the brokerage process.
 
-• Discover inventory
+Primary objectives:
+
+• Find inventory
+
 • Contact sellers
-• Obtain permission to list
-• Generate optimized listings
-• Find buyers
-• Answer buyer questions
+
+• Obtain permission
+
+• Create optimized listings
+
+• Match buyers
+
+• Communicate with buyers
+
 • Assist negotiations
+
 • Coordinate transactions
+
 • Generate commission revenue
 
-DealHaus is an AI company built around automation.
-
----
-
-# PRIMARY OBJECTIVE
+DealHaus is designed to become an autonomous AI brokerage platform.
 
 The objective is NOT simply to build another marketplace.
 
-The objective is to build the most autonomous AI marketplace brokerage possible.
-
-Every decision should improve one or more of the following:
-
-• Automation
-• Revenue
-• Reliability
-• Scalability
-• User Experience
-
-If a task does not move DealHaus closer to launch or improve those five goals, it should usually wait until after launch.
+The objective is to automate as much of the brokerage business as possible.
 
 ---
 
-# CURRENT PROJECT STATUS
+# COMPANY VISION
 
-Project Stage:
-Final Pre-Launch Development
+DealHaus is a technology company.
 
-Current Focus:
-Complete all launch-critical systems and begin generating revenue.
+Furniture is only the initial launch category.
 
-Current Priority:
+The software architecture must always remain category independent.
 
-LAUNCH > Cosmetics
+Supported launch marketplaces:
 
-Revenue-generating features always take priority over visual improvements unless a UI issue prevents users from using the platform.
+• Facebook Marketplace
+
+• OfferUp
+
+• Craigslist
+
+Future integrations:
+
+• eBay
+
+• Mercari
+
+• Etsy
+
+• Additional regional marketplaces
+
+Future expansion should require minimal architectural changes.
+
+Every decision should support:
+
+• Automation
+
+• Revenue
+
+• Reliability
+
+• Scalability
+
+• User Experience
 
 ---
 
@@ -113,709 +145,129 @@ Build once.
 
 Build correctly.
 
-Avoid rebuilding.
+Verify everything.
 
 Avoid duplicate work.
 
-Verify everything before making changes.
+Never redesign verified systems without necessity.
 
-Every feature should be modular.
+Every feature should improve one or more of the following:
 
-Every major change should preserve scalability.
+• Revenue
 
-Every coding session should move the project closer to launch.
+• Automation
+
+• Reliability
+
+• Scalability
+
+• User Experience
+
+Launch always takes priority over cosmetic improvements.
 
 ---
 
-# DEVELOPMENT RULES
+# PERMANENT DEVELOPMENT RULES
+
+ALWAYS:
+
+• Verify the existing implementation before editing.
+
+• Use the current project as the source of truth.
+
+• Extend existing architecture whenever possible.
+
+• Keep business logic modular.
+
+• Test after every major change.
+
+• Update this handoff after major milestones.
 
 NEVER:
 
 • Recreate existing files.
-• Rewrite working systems without a valid reason.
+
 • Guess database structures.
+
 • Guess API behavior.
+
 • Duplicate business logic.
-• Break existing workflows.
 
-ALWAYS:
-
-• Verify existing implementation.
-• Build on the current architecture.
-• Keep components modular.
-• Prioritize automation.
-• Test after every major change.
-• Update this handoff after every completed work session.
+• Redesign working architecture without a valid reason.
 
 ---
 
-# COMPANY VISION
+# 10-MINUTE DEVELOPMENT RULE
 
-## What DealHaus IS
+This rule became permanent on July 3, 2026.
 
-DealHaus is an AI-powered marketplace brokerage platform.
+If any file cannot be repaired within approximately 10 minutes:
 
-It is not simply a marketplace website.
+STOP PATCHING.
 
-DealHaus acts as an intelligent broker between buyers and sellers by using specialized AI agents to automate nearly every stage of the buying and selling process.
+Replace the ENTIRE file.
 
-The platform is designed to discover inventory, communicate with sellers, prepare listings, match buyers, assist negotiations, coordinate transactions, and generate commission revenue without owning inventory.
+Do NOT continue chasing JSX nesting problems.
 
-The long-term objective is to become the most autonomous AI brokerage platform in the local marketplace industry.
+Do NOT continue stacking temporary fixes.
 
----
+Provide:
 
-## What DealHaus is NOT
+• exact filename
 
-DealHaus is NOT:
+• complete replacement
 
-- A furniture marketplace
-- An inventory warehouse
-- A dropshipping business
-- An auction website
-- A classified ads website
+• no partial snippets
 
-Furniture is only one of many supported product categories.
-
-The platform architecture must always remain category-independent.
-
----
-
-## Launch Categories
-
-DealHaus launches as a multi-category marketplace brokerage.
-
-Current supported categories include:
-
-- Furniture
-- Electronics
-- Appliances
-- Home Goods
-- Home Décor
-- Patio Furniture
-- Outdoor Furniture
-- Outdoor Equipment
-- Lawn & Garden
-- Tools
-- Power Equipment
-- Office Furniture
-- Office Equipment
-- Fitness Equipment
-- Baby & Children's Items
-- Sporting Goods
-- Building Materials
-- Collectibles
-- Musical Instruments
-- Pet Supplies
-- Seasonal Items
-
-Additional categories should be easy to add without redesigning the system.
-
----
-
-## Supported Marketplaces
-
-Current launch:
-
-- Facebook Marketplace
-- OfferUp
-- Craigslist
-
-Future marketplace integrations may include:
-
-- eBay
-- Mercari
-- Etsy
-- Additional regional marketplaces
-- Additional national marketplaces
-
-The software architecture should support adding new marketplace integrations with minimal changes.
-
----
-
-## Long-Term Vision
-
-DealHaus is being built as a technology company—not simply a website.
-
-The long-term vision is to create an AI ecosystem capable of operating thousands of marketplace transactions simultaneously through autonomous AI agents.
-
-Every architectural decision should support:
-
-- Scalability
-- Automation
-- Reliability
-- Revenue Growth
-- Expansion into additional categories
-- Expansion into additional marketplaces
-- Expansion into additional geographic regions
-
-The platform should never be designed around a single category or marketplace.
+This approach dramatically improved development speed during launch verification and is now the permanent development standard.
 
 ---
 
 # CURRENT PROJECT STATUS
 
-## Development Stage
+Current Stage:
 
-Status:
-FINAL PRE-LAUNCH DEVELOPMENT
+PRE-LAUNCH
 
 Overall Progress:
-Approximately 85–90% complete.
 
-The platform has moved beyond the prototype phase. The core architecture has been established, major AI workflows are operational, and the focus is now on completing launch-critical functionality.
+Approximately 95–98% complete.
 
----
+The project has transitioned from feature development into release engineering.
 
-## Completed Major Systems
+Major feature development is considered complete.
 
-The following systems are already built and should NOT be recreated without verification:
+The remaining work is verification, cleanup, production readiness, deployment, and launch.
 
-### Core Platform
-- Next.js application
-- Supabase integration
-- Executive Dashboard
-- Workspace architecture
-- Modular component structure
+Current priority:
 
-### Seller Pipeline
-- Marketplace ingestion
-- AI Seller Acquisition
-- Seller Outreach
-- Seller Approval
-- Listing Preparation Queue
-- AI Relist Queue
-- Inventory creation
+LAUNCH > EVERYTHING ELSE
 
-### Buyer Pipeline
-- Buyer Matching
-- Buyer Outreach
-- Conversation creation
-- Active Deals workspace
-- Negotiation workflow
-
-### Automation
-- Workflow Engine
-- Modular workflows
-- Duplicate prevention
-- Workflow monitoring
-- Exception logging foundation
-
-### Public Website
-- Landing page
-- Seller submission page
-- Public marketing pages
+Unless a new issue blocks launch, no major systems should be added before release.
 
 ---
 
-# CURRENT DEVELOPMENT PRIORITY
+# WHAT HAS BEEN VERIFIED
 
-The objective is no longer proving the concept.
+The following systems have been fully verified.
 
-The objective is launching DealHaus.
+Core Platform
 
-Every development decision should answer one question:
+✅ Next.js
 
-"Does this move DealHaus closer to launch?"
+✅ React
 
-If the answer is no, it should usually wait until after launch.
+✅ Tailwind
 
----
+✅ Supabase
 
-# WHAT WE ARE BUILDING NEXT
+✅ Authentication
 
-Launch-critical remaining work:
+✅ Admin Dashboard
 
-1. Marketplace Publishing automation
-2. Commission & payment workflow
-3. Email notifications
-4. Phone/contact validation
-5. Production testing
-6. Final security review
-7. Production deployment
-8. Public launch
+Seller Pipeline
 
-These items take priority over cosmetic improvements or large architectural refactoring.
-
----
-
-# END OF HANDOFF FOUNDATION
-
-This document is a living document.
-
-At the end of every work session:
-
-- Update completed work.
-- Update the next task.
-- Commit changes to Git.
-
-This document should always reflect the current state of the DealHaus project.
-
----
-
-# CURRENT LAUNCH VERIFICATION PRIORITY
-
-As of the latest handoff update, the remaining launch verification items are:
-
-1. Negotiation
-2. Marketplace Publish
-3. Revenue
-4. Workflow Automation
-5. Clean up last debug code
-6. Create recovery baseline commit
-
-These are the immediate priorities before moving into new feature work.
-
-Do not start new systems until these are verified.
-
-Do not spend time on cosmetic redesigns until these are complete.
-
-The next GPT-5.5 session should begin by verifying these items in the actual codebase, then proceed in this exact order.
-
-We are continuing the DealHaus project.
-
-Read my DEALHAUS_MASTER_HANDOFF.md before doing anything else.
-
-We are NOT writing code yet.
-
-Our first objective is to COMPLETE and VERIFY the Master Handoff against the ACTUAL project—not memory.
-
-The handoff must become the permanent operating manual for DealHaus so every future GPT-5.5 session can immediately continue development without spending an hour rediscovering the project.
-
-Requirements:
-
-• Verify the actual file tree.
-• Verify every important file.
-• Verify every API.
-• Verify every database table.
-• Verify every AI workflow.
-• Verify the Workflow Engine.
-• Verify the current architecture.
-• Verify current launch status.
-• Verify the remaining launch checklist.
-
-Current launch verification order:
-
-1. Negotiation
-2. Marketplace Publish
-3. Revenue
-4. Workflow Automation
-5. Clean up remaining debug code
-6. Create Recovery Baseline Commit
-
-Development Rules:
-
-• Give ONE STEP AT A TIME.
-• Wait for confirmation before continuing.
-• Never recreate files.
-• Never redesign architecture.
-• Never guess.
-• Use the actual project as the source of truth.
-
-# VERIFIED PROJECT STATE — JULY 2, 2026
-# VERIFIED PROJECT STATE — JULY 2, 2026
-
-## Verification Status
-
-This section reflects the verified state of the DealHaus project as of July 2, 2026.
-
-Every item below has been verified against the actual codebase, Git repository, and Supabase database.
-
-The project—not previous ChatGPT conversations or memory—is the source of truth.
-
-Future development should continue from this verified state.
-
----
-
-## Launch Verification Status
-
-✅ Negotiation Workflow — VERIFIED
-
-✅ Marketplace Publish Workflow — VERIFIED
-
-✅ Revenue Workflow — VERIFIED
-
-✅ Workflow Automation — VERIFIED
-
-✅ Remaining debug code identified
-
-⬜ Recovery baseline commit pending
-
----
-
-## Verified Runtime Workflow Order
-
-The current autonomous workflow executes in this order:
-
-1. Seller Workflow
-2. AI Relist Workflow
-3. Buyer Workflow
-4. Negotiation Workflow
-5. Marketplace Publish Workflow
-6. Revenue Workflow
-
-This execution order is verified from `FullWorkflowRunner.ts` and should not be confused with the launch verification checklist.
-
----
-
-## Verified Application Architecture
-
-### Public Application
-
-Verified entry point:
-
-app/page.tsx
-
-The root application immediately routes to:
-
-app/launch/page.tsx
-
-The public launch page is the primary customer-facing application.
-
-It contains:
-
-- Hero section
-- Seller onboarding CTA
-- Live marketplace inventory
-- "How DealHaus Works"
-- Trust section
-- About section
-- Contact information
-- FAQ links
-- Footer
-
-HeroSection is a reusable component used within the launch page and is not the application's primary page.
-
----
-
-### Admin Application
-
-Verified entry point:
-
-app/admin/page.tsx
-
-The admin application is separate from the public launch experience.
-
-Verified features include:
-
-- Authentication
-- Admin authorization
-- Operations Dashboard
-- Marketplace Ingestion
-- Active Deals
-- Conversations
-- Revenue
-- Buyer Inquiries
-- Workflow Automation
-- Workflow Monitoring
-
-The admin page currently serves as the primary orchestration page for DealHaus operations.
-
----
-
-### Workflow Automation
-
-Verified components:
-
-- WorkflowEngine.tsx
-- FullWorkflowRunner.ts
-- WorkflowControlCenter.tsx
-- WorkflowMonitor.tsx
-
-WorkflowEngine is mounted inside the admin application.
-
-Automation is NOT mounted globally from app/layout.tsx.
-
-WorkflowEngine:
-
-- persists automation state in localStorage
-- executes immediately when enabled
-- reruns every 2 minutes
-- can be manually executed through WorkflowControlCenter
-
----
-
-## Verified Database Architecture
-
-The following public tables have been verified against the live Supabase database.
-
-### Core Marketplace
-
-- inventory
-- listings
-- marketplace_imports
-- marketplace_publish_tasks
-- acquisition_runs
-
-### Seller Pipeline
-
-- seller_leads
-- seller_onboarding
-- listing_prep_tasks
-- ai_relist_tasks
-- outreach_tasks
-
-### Buyer Pipeline
-
-- buyer_matches
-- buyer_outreach_tasks
-- buyer_conversations
-- buyer_conversation_messages
-- buyer_inquiries
-
-### Negotiation
-
-- negotiation_tasks
-
-### Revenue
-
-- revenue_records
-
-### Workflow / Operations
-
-- ai_activity
-- ai_outreach_logs
-- exception_tasks
-- pipeline
-
-### Authentication
-
-- profiles
-
-### Legacy / Supporting Tables
-
-The following tables currently exist but must be verified before future development depends on them:
-
-- conversations
-- deal_conversations
-- deal_messages
-- leads
-
-Future development should use the active workflow tables unless a migration requires one of the legacy tables.
-
----
-
-## Verified API Architecture
-
-The following API routes have been verified in the current project.
-
-### Seller Acquisition
-
-`/api/acquisition-run`
-
-Purpose:
-
-- Runs the seller acquisition process.
-- Creates acquisition runs.
-- Feeds the seller pipeline.
-
----
-
-### AI Relist
-
-`/api/generate-ai-relist`
-
-Purpose:
-
-- Generates AI listing data.
-- Creates inventory items from approved listing preparation tasks.
-- Advances the seller pipeline into active inventory.
-
----
-
-### AI Listing Generation
-
-`/api/generate-listing`
-
-Purpose:
-
-- Generates listing content for manually submitted inventory.
-- Used during onboarding and testing.
-
----
-
-### Buyer Outreach
-
-`/api/create-buyer-outreach-task`
-
-Purpose:
-
-- Creates buyer outreach tasks from buyer matches.
-- Advances the buyer pipeline.
-
----
-
-### Seller Lead Status
-
-`/api/seller-lead-status`
-
-Purpose:
-
-- Updates seller lead workflow status.
-- Used throughout the seller pipeline.
-
----
-
-### Marketplace Import
-
-`/api/import-deals`
-
-Purpose:
-
-- Imports marketplace inventory into DealHaus.
-- Supports ingestion workflows.
-
----
-
-### Email
-
-`/api/send-email`
-
-Purpose:
-
-- Sends platform email communications.
-- Intended for seller and buyer notifications.
-
----
-
-## API Verification Status
-
-All API routes above have been verified to exist in the current codebase.
-
-Individual business logic should always be verified before modification.
-
-Do not recreate API routes that already exist.
-
----
-
-# Verified File Architecture
-
-The following files and directories have been verified to exist in the current Git repository.
-
-## Root
-
-- app/
-- docs/
-- lib/
-- public/
-
-Project configuration:
-
-- package.json
-- package-lock.json
-- next.config.ts
-- tsconfig.json
-- eslint.config.mjs
-- postcss.config.mjs
-
----
-
-## Public Website
-
-Verified pages:
-
-- app/page.tsx
-- app/launch/page.tsx
-- app/marketplace/page.tsx
-- app/marketplace/[id]/page.tsx
-- app/submit/page.tsx
-- app/contact/page.tsx
-- app/faq/page.tsx
-- app/privacy/page.tsx
-- app/terms/page.tsx
-
-Verified public components include:
-
-- HeroSection
-- PublicLaunchHome
-- PublicSellerSubmission
-
----
-
-## Admin Application
-
-Verified entry:
-
-- app/admin/page.tsx
-
-Verified admin workspaces include:
-
-- DashboardWorkspace
-- DealsWorkspace
-- IngestionWorkspace
-- ConversationsWorkspace
-- RevenueWorkspace
-- BuyerInquiriesWorkspace
-
-Supporting admin components include:
-
-- AppSidebar
-- WorkspaceRouter
-- ExecutiveCommandCenter
-- AgentOrchestrator
-- WorkflowControlCenter
-- WorkflowMonitor
-- GoLiveChecklist
-
----
-
-## Workflow System
-
-Verified workflow modules:
-
-- SellerWorkflow.ts
-- RelistWorkflow.ts
-- BuyerWorkflow.ts
-- NegotiationWorkflow.ts
-- MarketplaceWorkflow.ts
-- RevenueWorkflow.ts
-- FullWorkflowRunner.ts
-- WorkflowEngine.tsx
-
-These modules form the autonomous DealHaus workflow pipeline and should be extended rather than replaced.
-
----
-
-## Development Rule
-
-Before creating any new file:
-
-1. Verify an equivalent file does not already exist.
-2. Extend the existing architecture whenever possible.
-3. Avoid duplicate business logic.
-4. Preserve the current modular workflow design.
-
----
-
-# VERIFIED LAUNCH READINESS CHECKLIST
-
-The following checklist reflects the verified launch state of the DealHaus project.
-
-Future GPT sessions should begin here before implementing new features.
-
----
-
-## Core Platform
-
-✅ Public website operational
-
-✅ Admin application operational
-
-✅ Authentication implemented
-
-✅ Admin authorization implemented
-
-✅ Supabase connected
-
-✅ Workflow architecture verified
-
----
-
-## Seller Pipeline
-
-✅ Seller Acquisition
-
-✅ Seller Outreach
+✅ Marketplace Acquisition
 
 ✅ Seller Approval
 
@@ -823,150 +275,219 @@ Future GPT sessions should begin here before implementing new features.
 
 ✅ AI Relist
 
-✅ Inventory Creation
-
----
-
-## Buyer Pipeline
+Buyer Pipeline
 
 ✅ Buyer Matching
 
 ✅ Buyer Outreach
 
-✅ Buyer Conversations
+✅ Negotiation
+
+Marketplace
+
+✅ Marketplace Publish Queue
+
+Brokerage
+
+✅ Brokerage Transactions
+
+✅ Commission Tracking
+
+✅ Revenue Tracking
+
+Automation
+
+✅ Workflow Engine
+
+✅ Workflow Runner
+
+✅ Workflow Monitor
+
+✅ Workflow Control Center
+
+Operations
+
+✅ Exception Queue
+
+✅ Revenue Queue
+
+✅ Brokerage Center
+
+The project is no longer proving concepts.
+
+It is preparing for launch.
 
 ---
 
-## Negotiation
+# CURRENT DEVELOPMENT PRIORITY
 
-✅ Negotiation workflow verified
+The remaining priorities are:
 
-Duplicate prevention verified.
+1. Final production verification
 
-Exception logging verified.
+2. Remove remaining development-only debugging
 
-Schema verified.
+3. Clean demo/test data
 
----
+4. Recovery baseline commit
 
-## Marketplace Publishing
+5. Production deployment
 
-✅ Marketplace publish task generation verified.
+6. Public launch
 
-Current implementation creates publish tasks for active inventory.
-
-Future enhancement:
-
-Implement automated publishing to supported marketplaces.
+No unrelated feature work should begin before these items are complete.
 
 ---
 
-## Revenue
+# VERIFIED PLATFORM ARCHITECTURE
 
-✅ Revenue automation verified.
+## Public Website
 
-Current workflow:
+Verified public entry point:
 
-Marketplace Publish Task (sold)
+app/page.tsx
 
-↓
+Routes directly into:
 
-Revenue Record
+app/launch/page.tsx
 
-↓
+The launch page is the primary customer-facing experience.
 
-Inventory Closed
+Verified sections include:
 
-Current verified commission rate:
+• Hero
 
-10%
+• Marketplace Preview
 
----
+• Seller Submission CTA
 
-## Workflow Automation
+• How DealHaus Works
 
-✅ Manual execution verified.
+• Why Choose DealHaus
 
-✅ Background automation verified.
+• FAQ
 
-Verified execution order:
+• Contact
 
-Seller
+• Footer
 
-↓
+Public pages currently verified:
 
-Relist
+app/page.tsx
 
-↓
+app/launch/page.tsx
 
-Buyer
+app/marketplace/page.tsx
 
-↓
+app/marketplace/[id]/page.tsx
 
-Negotiation
+app/submit/page.tsx
 
-↓
+app/contact/page.tsx
 
-Marketplace Publish
+app/privacy/page.tsx
 
-↓
+app/terms/page.tsx
 
-Revenue
+app/faq/page.tsx
 
----
+Verified reusable public components:
 
-## Exception Handling
+HeroSection
 
-Verified exception logging exists for:
+PublicLaunchHome
 
-- Negotiation
-- Marketplace Publish
-- Revenue
-
-Exception records are written to:
-
-exception_tasks
+PublicSellerSubmission
 
 ---
 
-## Remaining Pre-Launch Items
+## Admin Application
 
-The remaining launch work should proceed in this order:
+Verified entry point:
 
-1. Remove remaining development debug code.
-2. Perform one complete end-to-end workflow test.
-3. Verify no duplicate workflow creation occurs.
-4. Update DEALHAUS_MASTER_HANDOFF.md.
-5. Stage all verified changes.
-6. Create the Recovery Baseline Commit.
-7. Launch preparation.
-8. Production deployment.
+app/admin/page.tsx
+
+The Admin application serves as the operational command center.
+
+Verified workspaces:
+
+DashboardWorkspace
+
+DealsWorkspace
+
+IngestionWorkspace
+
+ConversationsWorkspace
+
+RevenueWorkspace
+
+BuyerInquiriesWorkspace
+
+Supporting components:
+
+ExecutiveCommandCenter
+
+AgentOrchestrator
+
+WorkflowControlCenter
+
+WorkflowMonitor
+
+RevenueQueue
+
+ExceptionQueue
+
+Brokerage Center
+
+GoLiveChecklist
+
+AppSidebar
+
+WorkspaceRouter
 
 ---
 
-## Development Rules (Permanent)
+# VERIFIED WORKFLOW ARCHITECTURE
 
-Future development should always follow these rules:
+The autonomous workflow currently executes in this order:
 
-- Verify before modifying.
-- Never recreate existing files.
-- Never redesign working architecture without necessity.
-- Extend existing workflows whenever possible.
-- Use the project as the source of truth.
-- Update this handoff after every completed development session.
+Seller Workflow
 
-This document is the permanent operational reference for DealHaus.
-
----
-
-# VERIFIED RUNTIME DATA FLOW
-
-The following workflow has been verified from the current codebase.
-
-Seller Acquisition
 ↓
 
-seller_leads
+Relist Workflow
+
+↓
+
+Buyer Workflow
+
+↓
+
+Negotiation Workflow
+
+↓
+
+Marketplace Workflow
+
+↓
+
+Revenue Workflow
+
+Execution order verified from:
+
+FullWorkflowRunner.ts
+
+WorkflowEngine.tsx
+
+WorkflowControlCenter.tsx
+
+WorkflowMonitor.tsx
+
+---
+
+# VERIFIED END-TO-END RUNTIME PIPELINE
+
+Seller Lead
 
 ↓
 
@@ -974,15 +495,11 @@ Seller Outreach
 
 ↓
 
-outreach_tasks
-
-↓
-
 Seller Approved
 
 ↓
 
-listing_prep_tasks
+Listing Preparation
 
 ↓
 
@@ -990,11 +507,11 @@ AI Relist
 
 ↓
 
-ai_relist_tasks
+Inventory Created
 
 ↓
 
-inventory
+Marketplace Publish
 
 ↓
 
@@ -1002,15 +519,7 @@ Buyer Matching
 
 ↓
 
-buyer_matches
-
-↓
-
 Buyer Outreach
-
-↓
-
-buyer_outreach_tasks
 
 ↓
 
@@ -1018,375 +527,774 @@ Negotiation
 
 ↓
 
-negotiation_tasks
+Brokerage Transaction Created
 
 ↓
 
-Marketplace Publish Queue
+Buyer Confirmed
 
 ↓
+
+Seller Confirmed
+
+↓
+
+Meetup Completed
+
+↓
+
+Commission Paid
+
+↓
+
+Brokerage Closed
+
+↓
+
+Revenue Record Created
+
+This entire pipeline has now been verified end-to-end.
+
+---
+
+# VERIFIED DATABASE TABLES
+
+Seller Pipeline
+
+seller_leads
+
+seller_onboarding
+
+listing_prep_tasks
+
+ai_relist_tasks
+
+outreach_tasks
+
+Inventory
+
+inventory
 
 marketplace_publish_tasks
 
-↓
+Buyer Pipeline
+
+buyer_matches
+
+buyer_outreach_tasks
+
+buyer_conversations
+
+buyer_conversation_messages
+
+buyer_inquiries
+
+Negotiation
+
+negotiation_tasks
+
+Brokerage
+
+brokerage_transactions
 
 Revenue
 
-↓
-
 revenue_records
 
-↓
-
-Inventory Status = closed
-
----
-
-## Duplicate Protection
-
-Every major workflow verifies existing records before creating new ones.
-
-Verified duplicate prevention currently exists for:
-
-- Listing Preparation
-- AI Relist
-- Buyer Matching
-- Buyer Outreach
-- Negotiation
-- Marketplace Publish
-- Revenue
-
----
-
-## Exception Handling
-
-Workflow failures are recorded in:
+Operations
 
 exception_tasks
 
-Current verified exception types include:
+ai_activity
 
-- workflow_negotiation_failed
-- workflow_marketplace_publish_failed
-- workflow_revenue_creation_failed
-- workflow_inventory_close_failed_after_revenue
+pipeline
 
-Future workflow modules should continue using exception_tasks instead of failing silently.
+Authentication
+
+profiles
+
+Legacy supporting tables remain in the project but should not be used for future development without verification.
+
+---
+
+# VERIFIED API ROUTES
+
+Seller Acquisition
+
+/api/acquisition-run
+
+Purpose:
+
+Runs AI acquisition.
+
+Creates seller leads.
+
+Feeds seller pipeline.
 
 ---
 
-# VERIFIED GIT & RECOVERY PROCEDURE
+AI Relist
 
-## Verified Repository Status (July 2, 2026)
+/api/generate-ai-relist
 
-The project is maintained in Git and development should always preserve a recoverable state.
+Purpose:
 
-At the time of this verification:
+Creates optimized inventory.
 
-### Verified modified files
+Creates AI listing content.
 
-- app/api/generate-ai-relist/route.ts
-- app/components/ListingPrepQueue.tsx
-- app/components/seller/AiRelistQueue.tsx
-- app/components/workspaces/AIAcquisitionAgent.tsx
-- app/components/workspaces/DealsWorkspace.tsx
-- app/components/workspaces/IngestionWorkspace.tsx
-
-### Verified untracked items
-
-- docs/
-- project-tree.txt
-- tracked-files.txt
-
-Temporary verification files (project-tree.txt and tracked-files.txt) should not be included in the recovery baseline commit unless intentionally desired.
+Moves approved listings into inventory.
 
 ---
+
+AI Listing
+
+/api/generate-listing
+
+Purpose:
+
+Manual listing generation.
+
+Used during onboarding and testing.
+
+---
+
+Buyer Outreach
+
+/api/create-buyer-outreach-task
+
+Purpose:
+
+Creates buyer outreach tasks.
+
+Advances buyer pipeline.
+
+---
+
+Seller Status
+
+/api/seller-lead-status
+
+Purpose:
+
+Updates seller workflow status.
+
+---
+
+Marketplace Import
+
+/api/import-deals
+
+Purpose:
+
+Imports marketplace inventory.
+
+Feeds acquisition workflows.
+
+---
+
+Email
+
+/api/send-email
+
+Purpose:
+
+Platform email communication.
+
+Future:
+
+Seller automation
+
+Buyer automation
+
+Notifications
 
 ---
 
 # VERIFIED COMPONENT INVENTORY
 
-The following major components have been verified to exist in the current codebase.
+Seller Pipeline
 
-## Public Components
+SellerLeadQueue
 
-- HeroSection
-- PublicLaunchHome
-- PublicSellerSubmission
+OutreachReadyQueue
 
-## Seller Pipeline
+OutreachTaskQueue
 
-- SellerLeadQueue
-- OutreachReadyQueue
-- OutreachTaskQueue
-- ContactedSellerQueue
-- SellerResponseQueue
-- SellerApprovedQueue
-- ListingPrepQueue
-- AiRelistQueue
-- SellerOnboarding
+SellerResponseQueue
 
-## Buyer Pipeline
+SellerApprovedQueue
 
-- BuyerMatchAgent
-- BuyerMatchPanel
-- BuyerOutreachPanel
-- BuyerOutreachTaskQueue
-- BuyerInquiriesWorkspace
-- ContactPanel
-- ConversationThread
-- RecentConversations
+ListingPrepQueue
 
-## Deal Management
+AiRelistQueue
 
-- DealCard
-- DealFilters
-- DealModal
-- AiPipelineStats
-- AiPriorityQueue
-- AiActivityLog
-- AiOutreachPanel
+SellerOnboarding
 
-## Dashboard
+Buyer Pipeline
 
-- ExecutiveCommandCenter
-- AgentOrchestrator
-- WorkflowControlCenter
-- WorkflowMonitor
-- GoLiveChecklist
-- RevenueAnalytics
-- MarketplaceSync
-- NegotiationCenter
-- ConversationCenter
-- BuyerMatchEngine
-- AutonomousAgents
+BuyerMatchAgent
 
-## Workflow Modules
+BuyerOutreachPanel
 
-- SellerWorkflow
-- RelistWorkflow
-- BuyerWorkflow
-- NegotiationWorkflow
-- MarketplaceWorkflow
-- RevenueWorkflow
-- FullWorkflowRunner
-- WorkflowEngine
+BuyerOutreachTaskQueue
 
-## Workspace Modules
+BuyerInquiriesWorkspace
 
-- DashboardWorkspace
-- DealsWorkspace
-- IngestionWorkspace
-- ConversationsWorkspace
-- RevenueWorkspace
-- BuyerInquiriesWorkspace
+ConversationThread
 
-These components have been verified in the current repository and should be extended rather than recreated.
+ContactPanel
+
+RecentConversations
+
+Deal Management
+
+DealCard
+
+DealFilters
+
+DealModal
+
+AiPipelineStats
+
+AiPriorityQueue
+
+AiActivityLog
+
+AiOutreachPanel
+
+Dashboard
+
+ExecutiveCommandCenter
+
+AgentOrchestrator
+
+WorkflowControlCenter
+
+WorkflowMonitor
+
+GoLiveChecklist
+
+RevenueAnalytics
+
+MarketplaceSync
+
+NegotiationCenter
+
+ConversationCenter
+
+BuyerMatchEngine
+
+AutonomousAgents
+
+Workflow Modules
+
+SellerWorkflow
+
+RelistWorkflow
+
+BuyerWorkflow
+
+NegotiationWorkflow
+
+MarketplaceWorkflow
+
+RevenueWorkflow
+
+FullWorkflowRunner
+
+WorkflowEngine
+
+Workspace Modules
+
+DashboardWorkspace
+
+DealsWorkspace
+
+IngestionWorkspace
+
+ConversationsWorkspace
+
+RevenueWorkspace
+
+BuyerInquiriesWorkspace
 
 ---
 
-## Recovery Baseline Procedure
+# VERIFIED DUPLICATE PROTECTION
 
-Before creating the Recovery Baseline Commit:
+Verified duplicate prevention currently exists for:
 
-1. Verify the application starts successfully.
-2. Verify the database schema matches the workflows.
-3. Verify all launch-critical workflows.
-4. Remove unnecessary debug logging.
-5. Update this master handoff.
-6. Review `git status`.
-7. Stage intentional changes only.
-8. Create a descriptive recovery baseline commit.
+Listing Preparation
 
-The recovery baseline should represent a stable, verified point from which future development can safely continue.
+AI Relist
+
+Buyer Matching
+
+Buyer Outreach
+
+Negotiation
+
+Marketplace Publish
+
+Brokerage Transactions
+
+Revenue Records
+
+Every workflow verifies existing records before creating new ones.
 
 ---
 
-## Development Recovery Rules
+# VERIFIED EXCEPTION HANDLING
 
-If future development introduces issues:
+Workflow failures are written into:
 
-- Return to the latest verified recovery baseline.
-- Do not rebuild existing architecture.
-- Re-verify before making structural changes.
-- Preserve modular workflows whenever possible.
+exception_tasks
 
-The Git history should represent verified milestones rather than arbitrary checkpoints.
+Verified exception categories include:
+
+workflow_negotiation_failed
+
+workflow_marketplace_publish_failed
+
+workflow_brokerage_transaction_failed
+
+workflow_revenue_creation_failed
+
+workflow_inventory_close_failed_after_revenue
+
+Current verified status:
+
+Open Exceptions = 0
+
+Historical brokerage RLS exceptions have been resolved and marked resolved.
+
+---
+
+# VERIFIED BROKERAGE LIFECYCLE
+
+The brokerage system has been fully verified.
+
+Automatic Brokerage Transaction Creation
+
+Buyer Confirmation
+
+Seller Confirmation
+
+Meetup Completion
+
+Commission Payment
+
+Invoice Status
+
+Brokerage Closing
+
+Revenue Creation
+
+All database updates have been verified.
+
+All UI actions have been verified.
+
+Revenue automation has been verified.
+
+This represents the final operational stage of the DealHaus transaction lifecycle.
+---
+
+# VERIFIED LAUNCH STATUS
+
+## Overall Project Status
+
+Current Stage:
+
+FINAL PRE-LAUNCH
+
+Overall Completion:
+
+Approximately 95–98%
+
+The DealHaus platform has transitioned from feature development into release engineering.
+
+The primary objective is no longer building major systems.
+
+The remaining objective is preparing the existing platform for production launch.
+
+---
+
+# VERIFIED AUTOMATION STATUS
+
+The following systems have now been fully verified.
+
+Seller Workflow
+
+✅ Verified
+
+Relist Workflow
+
+✅ Verified
+
+Buyer Workflow
+
+✅ Verified
+
+Negotiation Workflow
+
+✅ Verified
+
+Marketplace Workflow
+
+✅ Verified
+
+Revenue Workflow
+
+✅ Verified
+
+Workflow Runner
+
+✅ Verified
+
+Workflow Engine
+
+✅ Verified
+
+Workflow Monitor
+
+✅ Verified
+
+Workflow Control Center
+
+✅ Verified
+
+Operations Dashboard
+
+✅ Verified
+
+Brokerage Center
+
+✅ Verified
+
+Revenue Queue
+
+✅ Verified
+
+Exception Queue
+
+✅ Verified
+
+Latest verified workflow run:
+
+Errors: 0
+
+Workflow completed successfully.
+
+No active exceptions.
+
+No workflow failures.
+
+---
+
+# VERIFIED DATABASE STATE
+
+Latest verified runtime counts:
+
+Seller Leads
+
+4
+
+Listing Prep
+
+1
+
+AI Relist
+
+1
+
+Inventory
+
+1
+
+Marketplace Publish
+
+1
+
+Buyer Match
+
+1
+
+Buyer Outreach
+
+1
+
+Negotiation
+
+1
+
+Brokerage Transaction
+
+1
+
+Revenue Record
+
+1
+
+Open Exceptions
+
+0
+
+These counts verify the complete autonomous DealHaus workflow.
+
+---
+
+# VERIFIED GIT STATUS
+
+Latest intentional modifications:
+
+app/components/workflows/MarketplaceWorkflow.ts
+
+app/components/workflows/FullWorkflowRunner.ts
+
+app/components/workspaces/RevenueWorkspace.tsx
+
+app/components/workspaces/WorkflowControlCenter.tsx
+
+These files contain verified launch-ready improvements and should be committed as the next recovery baseline after final production verification.
+
+---
+
+# REMAINING LAUNCH CHECKLIST
+
+The remaining launch work should proceed in this exact order.
+
+Priority 1
+
+Final Production Verification
+
+Verify:
+
+Public website
+
+Seller submission
+
+Authentication
+
+Supabase
+
+OpenAI
+
+Workflow automation
+
+Revenue automation
+
+Brokerage workflow
+
+Marketplace workflow
+
+Priority 2
+
+Remove any remaining development-only debugging.
+
+Do not remove legitimate runtime error handling.
+
+Priority 3
+
+Clean demo and test data.
+
+Preserve:
+
+Database schema
+
+Automation
+
+Workflow history
+
+Application architecture
+
+Priority 4
+
+Create the Recovery Baseline Commit.
+
+Recommended process:
+
+git status
+
+git diff --stat
+
+Verify application
+
+Verify workflows
+
+Stage intentional files only
+
+Commit
+
+Push to GitHub
+
+Priority 5
+
+Production Deployment
+
+Verify:
+
+Environment variables
+
+Supabase production
+
+OpenAI production
+
+Authentication
+
+Public website
+
+Admin dashboard
+
+Priority 6
+
+Public Launch
+
+---
+
+# RECOVERY BASELINE PROCEDURE
+
+Before creating the recovery baseline:
+
+Verify application starts correctly.
+
+Verify all workflows.
+
+Verify no open exceptions.
+
+Verify brokerage lifecycle.
+
+Verify workflow runner.
+
+Verify production configuration.
+
+Review git status.
+
+Review git diff.
+
+Stage only intentional changes.
+
+Create a descriptive recovery baseline commit.
+
+The recovery baseline should represent a fully verified launch-ready system.
 
 ---
 
 # FUTURE GPT STARTUP PROTOCOL
 
-This section defines exactly how every future ChatGPT session should begin work on DealHaus.
+Every future GPT session should begin with the following process.
 
-Do not skip these steps.
+Step 1
 
-Do not assume previous conversations are accurate.
+Read this Project Bible completely.
 
-The project is always the source of truth.
+Step 2
 
----
+Verify the project.
 
-## Step 1 — Read the Master Handoff
-
-Read this entire document before suggesting code, architecture, or implementation changes.
-
----
-
-## Step 2 — Verify the Repository
-
-Verify the current Git state before making changes.
-
-Recommended checks:
-
-- git status
-- git diff --stat
-- git ls-files
-
-Do not assume the repository matches this document.
-
----
-
-## Step 3 — Verify the Project
-
-When verifying launch-critical systems, use the project itself as the source of truth.
+The project—not memory—is the source of truth.
 
 Verify:
 
-- File architecture
-- API routes
-- Workflow modules
-- Workflow execution order
-- Database schema
-- Launch checklist
+Git
 
-Never rely solely on memory.
+Files
 
----
+Database
 
-## Step 4 — Resume From the Current Launch Checklist
+Workflows
 
-Unless priorities have changed, continue work in this order:
+Architecture
 
-1. Complete any remaining launch blockers.
-2. Verify changes.
-3. Update this handoff.
-4. Commit verified work.
-5. Continue with the next launch task.
+Launch checklist
 
-Avoid starting unrelated features before launch readiness is complete.
+Step 3
 
----
+Continue from the current launch checklist.
 
-## Step 5 — Development Standards
+Never begin unrelated features before launch readiness is complete.
 
-Always:
+Step 4
 
-- Give one step at a time unless asked otherwise.
-- Verify before modifying.
-- Extend existing architecture.
-- Preserve modular workflows.
-- Avoid duplicate logic.
-- Keep the handoff synchronized with the project.
+Verify before modifying.
 
-Never:
+Never recreate files.
 
-- Recreate existing files.
-- Redesign verified architecture without justification.
-- Guess database structures.
-- Assume workflow behavior without verification.
+Never redesign verified systems.
+
+Never guess.
+
+Step 5
+
+Update this Project Bible before ending every work session.
+
+The Project Bible should always represent the current verified state of DealHaus.
 
 ---
 
-## Step 6 — End Every Work Session
+# POST-LAUNCH ROADMAP
 
-Before ending a development session:
+The following work should begin only after public launch.
 
-- Verify completed work.
-- Update this master handoff.
-- Review Git status.
-- Commit verified changes when appropriate.
-- Record the next highest-priority task.
+Marketplace Automation
 
-The objective is that any future GPT-5.5 session can immediately continue development without spending time rediscovering the DealHaus project.
+Automatically publish listings.
 
----
+Marketplace synchronization.
 
-# KNOWN TECHNICAL DEBT & POST-LAUNCH ROADMAP
+Marketplace URL tracking.
 
-The following items have been identified during project verification. They are not launch blockers unless otherwise noted.
+Automatic listing updates.
 
-## Launch Blockers
+Communications
 
-The following items should be completed before the Recovery Baseline Commit:
+Seller email automation.
 
-- Remove remaining development console.log statements.
-- Remove placeholder "Logout clicked" alert.
-- Perform one complete end-to-end workflow verification.
-- Verify duplicate prevention across all workflow stages.
-- Update the Master Handoff with any final verification results.
-- Create the Recovery Baseline Commit.
+Buyer email automation.
 
----
+SMS notifications.
 
-## Near-Term Improvements (Post Launch)
+Follow-up reminders.
 
-These items improve automation but are not required for initial launch:
+AI Improvements
 
-### Marketplace Automation
+Dynamic pricing.
 
-Current state:
+Negotiation suggestions.
 
-MarketplaceWorkflow creates marketplace publish tasks.
+Buyer qualification.
 
-Future goal:
+Conversation summaries.
 
-- Automatically publish listings to supported marketplaces.
-- Store live marketplace URLs.
-- Synchronize listing status.
+Closing probability.
 
----
+Dashboard Improvements
 
-### Communication
+Revenue forecasting.
 
-Current state:
+Historical analytics.
 
-Email API exists.
+AI performance metrics.
 
-Future improvements:
+Operational KPIs.
 
-- Seller email automation.
-- Buyer email automation.
-- SMS notifications.
-- Follow-up reminders.
+Workflow timing.
+
+Expansion
+
+Additional marketplaces.
+
+Additional product categories.
+
+National scaling.
+
+Mobile application.
+
+AI mobile notifications.
 
 ---
 
-### AI Improvements
-
-Future opportunities:
-
-- AI negotiation suggestions.
-- Dynamic pricing optimization.
-- Automated buyer qualification.
-- AI conversation summaries.
-- Predictive closing probability.
-
----
-
-### Dashboard Improvements
-
-Future opportunities:
-
-- Historical workflow analytics.
-- Revenue forecasting.
-- AI performance metrics.
-- Workflow timing analysis.
-- Operational KPI dashboards.
-
----
-
-## Guiding Principle
+# GUIDING PRINCIPLE
 
 Launch first.
 
@@ -1394,10 +1302,50 @@ Optimize second.
 
 Every future enhancement should improve one or more of the following:
 
-- Revenue
-- Automation
-- Reliability
-- Scalability
-- User Experience
+Revenue
 
-Avoid large architectural redesigns unless they clearly support those goals.
+Automation
+
+Reliability
+
+Scalability
+
+User Experience
+
+Avoid unnecessary architectural redesigns.
+
+Extend the verified platform whenever possible.
+
+---
+
+# CURRENT DEVELOPMENT PHILOSOPHY
+
+The DealHaus platform has reached the point where stability is more valuable than additional features.
+
+The objective is to launch a reliable AI-powered brokerage platform.
+
+Every future development decision should answer one question:
+
+"Does this move DealHaus closer to generating revenue?"
+
+If the answer is no, it should usually wait until after launch.
+
+---
+
+# END OF PROJECT BIBLE
+
+This document is the permanent operating manual for DealHaus.
+
+Future GPT sessions should begin here.
+
+The project itself remains the ultimate source of truth.
+
+Verify before modifying.
+
+Build on the verified architecture.
+
+Protect stability.
+
+Prioritize launch.
+
+Continue making DealHaus the most autonomous AI marketplace brokerage platform possible.
