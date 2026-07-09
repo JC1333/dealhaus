@@ -42,20 +42,16 @@ export default function ListingPrepQueue() {
   }
 
   async function markReadyForRelist(task: ListingPrepTask) {
-  setMessage("Creating AI relist task...");
+    const { error } = await supabase
+      .from("listing_prep_tasks")
+      .update({ prep_status: "ready_for_relist" })
+      .eq("id", task.id);
 
-  const { data: existingTasks, error: checkError } = await supabase
-    .from("ai_relist_tasks")
-    .select("id")
-    .eq("listing_prep_task_id", task.id)
-    .limit(1);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
 
-  if (checkError) {
-    setMessage("AI relist check error: " + checkError.message);
-    return;
-  }
-
-  if (!existingTasks || existingTasks.length === 0) {
     const { error: relistError } = await supabase
       .from("ai_relist_tasks")
       .insert({
@@ -64,29 +60,17 @@ export default function ListingPrepQueue() {
         item_title: task.item_title,
         seller_name: task.seller_name,
         asking_price: task.asking_price,
-        estimated_profit: task.estimated_profit || 0,
+        estimated_profit: task.estimated_profit,
         relist_status: "pending",
       });
 
     if (relistError) {
-      setMessage("AI relist insert error: " + relistError.message);
+      setMessage(relistError.message);
       return;
     }
+
+    await loadTasks();
   }
-
-  const { error: prepError } = await supabase
-    .from("listing_prep_tasks")
-    .update({ prep_status: "ready_for_relist" })
-    .eq("id", task.id);
-
-  if (prepError) {
-    setMessage("Prep update error: " + prepError.message);
-    return;
-  }
-
-  setMessage("AI relist task created.");
-  await loadTasks();
-}
 
 async function generateAiRelist(task: ListingPrepTask) {
   setMessage("Finding AI relist task...");
@@ -131,43 +115,18 @@ async function generateAiRelist(task: ListingPrepTask) {
   setMessage("Creating inventory item...");
 
   const generatedTask = result.task;
-  const { data: photoTask } = await supabase
-  .from("ai_relist_tasks")
-  .select(`
-    id,
-    listing_prep_tasks (
-      seller_leads (
-        photo_urls
-      )
-    )
-  `)
-  .eq("id", generatedTask.id)
-  .single();
-
-const rawSellerLead = (photoTask as any)?.listing_prep_tasks?.seller_leads;
-const photoSellerLead = Array.isArray(rawSellerLead) ? rawSellerLead[0] : rawSellerLead;
-
-const fallbackImage =
-  "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=1200&auto=format&fit=crop";
-
-const inventoryImages =
-  Array.isArray(photoSellerLead?.photo_urls) && photoSellerLead.photo_urls.length > 0
-    ? photoSellerLead.photo_urls
-    : [fallbackImage];
 
   const { data: inventoryItem, error: inventoryError } = await supabase
     .from("inventory")
-   .insert({
-  title: generatedTask.ai_title,
-  description: generatedTask.ai_description,
-  price: generatedTask.ai_price_recommendation,
-  status: "active",
-  seller_name: generatedTask.seller_name,
-  asking_price: generatedTask.asking_price,
-  profit_score: generatedTask.estimated_profit,
-  image: inventoryImages[0],
-  images: inventoryImages,
-})
+    .insert({
+      title: generatedTask.ai_title,
+      description: generatedTask.ai_description,
+      price: generatedTask.ai_price_recommendation,
+      status: "active",
+      seller_name: generatedTask.seller_name,
+      asking_price: generatedTask.asking_price,
+      profit_score: generatedTask.estimated_profit,
+    })
     .select()
     .single();
 
