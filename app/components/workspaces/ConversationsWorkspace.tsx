@@ -24,10 +24,15 @@ export default function ConversationsWorkspace() {
     setInventory(data || [])
   }
   async function loadBuyerConversations() {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('buyer_conversations')
     .select('*')
     .order('created_at', { ascending: false })
+
+  if (error) {
+    alert("Buyer conversations failed to load: " + error.message)
+    return
+  }
 
   setBuyerConversations(data || [])
 }
@@ -520,9 +525,14 @@ setBuyerMessages(messagesData || [])
 
 </button>
 
-                  <button className="bg-zinc-800 hover:bg-zinc-700 transition px-4 py-2 rounded-xl font-semibold">
-                    View Buyer Profiles
-                  </button>
+                  <button
+  type="button"
+  disabled
+  title="Buyer profile view will be enabled after launch."
+  className="cursor-not-allowed bg-zinc-800/70 px-4 py-2 rounded-xl font-semibold text-zinc-500"
+>
+  Buyer Profile Coming Soon
+</button>
 
                 </div>
 
