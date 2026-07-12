@@ -96,51 +96,81 @@ export default function Home() {
     },
   ]
   useEffect(() => {
-  const loadUser = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+  let cancelled = false
 
-    setUser(user)
-
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single()
-
-      setIsAdmin(profile?.is_admin === true)
-    } else {
-      setIsAdmin(false)
+  async function checkAdmin(currentUser: any) {
+    if (!currentUser) {
+      if (!cancelled) {
+        setUser(null)
+        setIsAdmin(false)
+      }
+      return
     }
 
-    setAuthLoading(false)
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', currentUser.id)
+      .single()
+
+    if (cancelled) return
+
+    if (profileError) {
+      console.error('Admin profile check failed:', profileError.message)
+      setUser(currentUser)
+      setIsAdmin(false)
+      return
+    }
+
+    setUser(currentUser)
+    setIsAdmin(profile?.is_admin === true)
   }
 
-  loadUser()
+  async function initializeAuth() {
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+
+      if (userError) {
+        console.error('Admin user check failed:', userError.message)
+      }
+
+      await checkAdmin(user ?? null)
+    } catch (error) {
+      console.error('Admin authentication failed:', error)
+      if (!cancelled) {
+        setUser(null)
+        setIsAdmin(false)
+      }
+    } finally {
+      if (!cancelled) {
+        setAuthLoading(false)
+      }
+    }
+  }
+
+  initializeAuth()
 
   const {
     data: { subscription },
-  } = supabase.auth.onAuthStateChange(async (_event, session) => {
+  } = supabase.auth.onAuthStateChange((_event, session) => {
     const currentUser = session?.user ?? null
 
-    setUser(currentUser)
+    window.setTimeout(() => {
+      if (cancelled) return
 
-    if (currentUser) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', currentUser.id)
-        .single()
-
-      setIsAdmin(profile?.is_admin === true)
-    } else {
-      setIsAdmin(false)
-    }
+      void checkAdmin(currentUser).finally(() => {
+        if (!cancelled) {
+          setAuthLoading(false)
+        }
+      })
+    }, 0)
   })
 
   return () => {
+    cancelled = true
     subscription.unsubscribe()
   }
 }, [])

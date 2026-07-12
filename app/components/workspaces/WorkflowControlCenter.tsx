@@ -9,24 +9,37 @@ export default function WorkflowControlCenter() {
   const [lastRun, setLastRun] = useState("");
 
   async function runOnce() {
-    setRunning(true);
-    setMessage("Running workflow once...");
+  setRunning(true);
+  setMessage("Running workflow once...");
 
-    try {
-      const workflowResult: any = await runFullWorkflow();
+  try {
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(
+          new Error(
+            "Workflow stopped after 30 seconds because one of the workflow stages did not finish."
+          )
+        );
+      }, 30000);
+    });
 
-      setMessage(
-        `Run complete. Errors: ${workflowResult.totalErrors}. Revenue created: ${workflowResult.revenueWorkflow.revenueCreated}. Marketplace tasks created: ${workflowResult.marketplaceWorkflow.marketplacePublishCreated}.`
-      );
+    const workflowResult: any = await Promise.race([
+      runFullWorkflow(),
+      timeoutPromise,
+    ]);
 
-      setLastRun(new Date().toLocaleTimeString());
-    } catch (error: any) {
-      setMessage(error?.message || "Manual workflow run failed.");
-      setLastRun(new Date().toLocaleTimeString());
-    } finally {
-      setRunning(false);
-    }
+    setMessage(
+      `Run complete. Errors: ${workflowResult.totalErrors}. Revenue created: ${workflowResult.revenueWorkflow.revenueCreated}. Marketplace tasks created: ${workflowResult.marketplaceWorkflow.marketplacePublishCreated}.`
+    );
+
+    setLastRun(new Date().toLocaleTimeString());
+  } catch (error: any) {
+    setMessage(error?.message || "Manual workflow run failed.");
+    setLastRun(new Date().toLocaleTimeString());
+  } finally {
+    setRunning(false);
   }
+}
 
   return (
     <section className="rounded-2xl border border-purple-900 bg-zinc-950 p-6 space-y-5">
