@@ -4,6 +4,7 @@ import { runBuyerWorkflow } from "./BuyerWorkflow";
 import { runNegotiationWorkflow } from "./NegotiationWorkflow";
 import { runMarketplaceWorkflow } from "./MarketplaceWorkflow";
 import { runRevenueWorkflow } from "./RevenueWorkflow";
+import { runInvoiceWorkflow } from "./InvoiceWorkflow";
 
 export async function runFullWorkflow() {
   console.log("WORKFLOW START: Seller");
@@ -30,6 +31,10 @@ export async function runFullWorkflow() {
   const revenueWorkflow = await runRevenueWorkflow();
   console.log("WORKFLOW COMPLETE: Revenue");
 
+  console.log("WORKFLOW START: Invoice");
+  const invoiceWorkflow = await runInvoiceWorkflow();
+  console.log("WORKFLOW COMPLETE: Invoice");
+
   const totalErrors =
     sellerWorkflow.errors +
     relistWorkflow.relistErrors +
@@ -37,7 +42,8 @@ export async function runFullWorkflow() {
     buyerWorkflow.buyerOutreachErrors +
     negotiationWorkflow.negotiationErrors +
     marketplaceWorkflow.marketplacePublishErrors +
-    revenueWorkflow.revenueErrors;
+    revenueWorkflow.revenueErrors +
+    invoiceWorkflow.invoiceErrors;
 
   return {
     sellerWorkflow,
@@ -46,6 +52,7 @@ export async function runFullWorkflow() {
     negotiationWorkflow,
     marketplaceWorkflow,
     revenueWorkflow,
+    invoiceWorkflow,
     totalErrors,
   };
 }

@@ -7,7 +7,7 @@ export async function runMarketplaceWorkflow() {
 
   const { data: activeInventory, error: inventoryError } = await supabase
     .from("inventory")
-    .select("id, title, price, status, seller_name")
+    .select("id, title, price, status, seller_name, seller_email")
     .eq("status", "active")
     .limit(100);
 
@@ -23,18 +23,38 @@ export async function runMarketplaceWorkflow() {
       notes: inventoryError.message,
     });
 
-    return { marketplacePublishCreated, marketplacePublishExisting, marketplacePublishErrors };
+    return {
+      marketplacePublishCreated,
+      marketplacePublishExisting,
+      marketplacePublishErrors,
+    };
   }
 
   if (activeInventory && activeInventory.length > 0) {
     for (const item of activeInventory) {
       let publishTaskId: string | null = null;
 
-      const { data: existingPublishTasks } = await supabase
-        .from("marketplace_publish_tasks")
-        .select("id")
-        .eq("inventory_item_id", item.id)
-        .limit(1);
+      const { data: existingPublishTasks, error: existingPublishError } =
+        await supabase
+          .from("marketplace_publish_tasks")
+          .select("id")
+          .eq("inventory_item_id", item.id)
+          .limit(1);
+
+      if (existingPublishError) {
+        marketplacePublishErrors += 1;
+
+        await supabase.from("exception_tasks").insert({
+          exception_type: "workflow_marketplace_publish_lookup_failed",
+          related_table: "inventory",
+          related_record_id: item.id,
+          item_title: item.title || "Marketplace Listing",
+          exception_status: "open",
+          notes: existingPublishError.message,
+        });
+
+        continue;
+      }
 
       if (existingPublishTasks && existingPublishTasks.length > 0) {
         marketplacePublishExisting += 1;
@@ -51,7 +71,7 @@ export async function runMarketplaceWorkflow() {
             craigslist_url: "",
             publish_status: "ready_to_publish",
           })
-          .select()
+          .select("id")
           .single();
 
         if (publishError) {
@@ -73,13 +93,34 @@ export async function runMarketplaceWorkflow() {
         publishTaskId = publishTask?.id || null;
       }
 
-      const { data: existingBrokerageTransactions } = await supabase
+      const {
+        data: existingBrokerageTransactions,
+        error: existingBrokerageError,
+      } = await supabase
         .from("brokerage_transactions")
         .select("id")
         .eq("inventory_item_id", item.id)
         .limit(1);
 
-      if (!existingBrokerageTransactions || existingBrokerageTransactions.length === 0) {
+      if (existingBrokerageError) {
+        marketplacePublishErrors += 1;
+
+        await supabase.from("exception_tasks").insert({
+          exception_type: "workflow_brokerage_lookup_failed",
+          related_table: "inventory",
+          related_record_id: item.id,
+          item_title: item.title || "Marketplace Listing",
+          exception_status: "open",
+          notes: existingBrokerageError.message,
+        });
+
+        continue;
+      }
+
+      if (
+        !existingBrokerageTransactions ||
+        existingBrokerageTransactions.length === 0
+      ) {
         const salePrice = Number(item.price || 0);
 
         const { error: brokerageError } = await supabase
@@ -89,11 +130,14 @@ export async function runMarketplaceWorkflow() {
             marketplace_publish_task_id: publishTaskId,
             item_title: item.title || "Marketplace Listing",
             seller_name: item.seller_name || "Marketplace Seller",
+            seller_email: item.seller_email || null,
             sale_price: salePrice,
             commission_rate: 10,
             commission_amount: salePrice * 0.1,
             seller_payout: salePrice * 0.9,
             meetup_status: "pending",
+            buyer_confirmed: false,
+            seller_confirmed: false,
             invoice_status: "not_sent",
             payment_status: "unpaid",
             transaction_status: "open",
@@ -115,5 +159,9 @@ export async function runMarketplaceWorkflow() {
     }
   }
 
-  return { marketplacePublishCreated, marketplacePublishExisting, marketplacePublishErrors };
+  return {
+    marketplacePublishCreated,
+    marketplacePublishExisting,
+    marketplacePublishErrors,
+  };
 }

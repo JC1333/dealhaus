@@ -9,73 +9,99 @@ export default function WorkflowControlCenter() {
   const [lastRun, setLastRun] = useState("");
 
   async function runOnce() {
-  setRunning(true);
-  setMessage("Running workflow once...");
+    if (running) return;
 
-  try {
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(
-          new Error(
-            "Workflow stopped after 30 seconds because one of the workflow stages did not finish."
-          )
-        );
-      }, 30000);
-    });
+    setRunning(true);
+    setMessage("Running workflow once...");
 
-    const workflowResult: any = await Promise.race([
-      runFullWorkflow(),
-      timeoutPromise,
-    ]);
+    try {
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        window.setTimeout(() => {
+          reject(
+            new Error(
+              "Workflow stopped after 45 seconds because one of the workflow stages did not finish."
+            )
+          );
+        }, 45000);
+      });
 
-    setMessage(
-      `Run complete. Errors: ${workflowResult.totalErrors}. Revenue created: ${workflowResult.revenueWorkflow.revenueCreated}. Marketplace tasks created: ${workflowResult.marketplaceWorkflow.marketplacePublishCreated}.`
-    );
+      const workflowResult: any = await Promise.race([
+        runFullWorkflow(),
+        timeoutPromise,
+      ]);
 
-    setLastRun(new Date().toLocaleTimeString());
-  } catch (error: any) {
-    setMessage(error?.message || "Manual workflow run failed.");
-    setLastRun(new Date().toLocaleTimeString());
-  } finally {
-    setRunning(false);
+      setMessage(
+        [
+          `Run complete.`,
+          `Errors: ${workflowResult.totalErrors}.`,
+          `Revenue created: ${
+            workflowResult.revenueWorkflow?.revenueCreated || 0
+          }.`,
+          `Marketplace tasks created: ${
+            workflowResult.marketplaceWorkflow?.marketplacePublishCreated || 0
+          }.`,
+          `Invoices sent: ${
+            workflowResult.invoiceWorkflow?.invoicesSent || 0
+          }.`,
+          `Invoices already handled: ${
+            workflowResult.invoiceWorkflow?.invoicesExisting || 0
+          }.`,
+        ].join(" ")
+      );
+
+      setLastRun(new Date().toLocaleTimeString());
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Manual workflow run failed.";
+
+      setMessage(errorMessage);
+      setLastRun(new Date().toLocaleTimeString());
+    } finally {
+      setRunning(false);
+    }
   }
-}
 
   return (
-    <section className="rounded-2xl border border-purple-900 bg-zinc-950 p-6 space-y-5">
+    <section className="space-y-5 rounded-2xl border border-purple-900 bg-zinc-950 p-6">
       <div>
         <h2 className="text-2xl font-bold">
           AI Operations Control Center
         </h2>
 
         <p className="text-sm text-zinc-400">
-          Run the DealHaus workflow manually during development without background polling.
+          Run the DealHaus workflow manually during development without
+          background polling.
         </p>
       </div>
 
       <div className="flex flex-wrap gap-3">
         <button
+          type="button"
           onClick={runOnce}
           disabled={running}
-          className="bg-purple-400 text-black rounded-xl px-5 py-3 text-sm font-bold disabled:opacity-50"
+          className="rounded-xl bg-purple-400 px-5 py-3 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-50"
         >
           {running ? "Running..." : "Run Workflow Once"}
         </button>
       </div>
 
       <div className="rounded-xl border border-zinc-800 bg-black p-4">
-        <p className="text-sm text-zinc-500">Last Run</p>
+        <p className="text-sm text-zinc-500">
+          Last Run
+        </p>
 
-        <p className="text-white font-bold mt-1">
+        <p className="mt-1 font-bold text-white">
           {lastRun || "Not run yet"}
         </p>
-      </div>
 
-      {message && (
-        <p className="text-sm text-cyan-400">
-          {message}
-        </p>
-      )}
+        {message && (
+          <p className="mt-2 text-sm text-cyan-400">
+            {message}
+          </p>
+        )}
+      </div>
     </section>
   );
 }
