@@ -9,9 +9,6 @@ import RecentConversations from '../deals/RecentConversations'
 import DealCard from '../deals/DealCard'
 import DealFilters from '../deals/DealFilters'
 import ConversationThread from '../deals/ConversationThread'
-import AiOutreachPanel from '../deals/AiOutreachPanel'
-import AiActivityLog from '../deals/AiActivityLog'
-import AiPriorityQueue from '../deals/AiPriorityQueue'
 import BuyerMatchAgent from '../deals/BuyerMatchAgent'
 
 import BuyerOutreachTaskQueue from './BuyerOutreachTaskQueue'
@@ -34,16 +31,12 @@ export default function DealsWorkspace() {
   const [conversationMessages, setConversationMessages] = useState<any[]>([])
   const [replyMessage, setReplyMessage] = useState('')
 
-  const [showAiOutreach, setShowAiOutreach] = useState(false)
-  const [outreachMessage, setOutreachMessage] = useState('')
-  const [aiLogs, setAiLogs] = useState<any[]>([])
   const [buyerMatches, setBuyerMatches] = useState<any[]>([])
   const [activeBuyerTab, setActiveBuyerTab] = useState('matches')
 
   useEffect(() => {
     loadInventory()
     loadConversations()
-    loadAiLogs()
     loadBuyerMatches()
 
     const channel = supabase
@@ -92,17 +85,6 @@ export default function DealsWorkspace() {
     }
   }
 
-  async function loadAiLogs() {
-    const { data, error } = await supabase
-      .from('ai_outreach_logs')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (!error && data) {
-      setAiLogs(data)
-    }
-  }
-
   async function loadBuyerMatches() {
 
   const { data, error } = await supabase
@@ -143,69 +125,6 @@ export default function DealsWorkspace() {
   const closeModal = () => {
     setSelectedDeal(null)
   }
-
-  const generateOutreachMessage = () => {
-    if (!selectedDeal) return
-
-    const options = [
-      `Hi,
-
-I came across your listing for "${selectedDeal.title}" and I think we may be able to help you sell it faster.
-
-DealHaus connects sellers with qualified local buyers and only earns a commission after a successful sale.
-
-There is no upfront cost to you. If you're open to it, we can start promoting your item to buyers who may already be interested.
-
-Would you like us to help bring buyers to your listing?
-
-— DealHaus AI`,
-
-      `Hi there,
-
-I saw your "${selectedDeal.title}" listing and wanted to reach out.
-
-We help local sellers find serious buyers faster by promoting quality items through our buyer network.
-
-You do not pay anything upfront. DealHaus only takes a commission if we help complete the sale.
-
-Would you be open to letting us bring interested buyers your way?
-
-— DealHaus AI`,
-
-      `Hello,
-
-Your "${selectedDeal.title}" listing looks like a good fit for our buyer network.
-
-DealHaus helps sellers move items by finding interested buyers, coordinating interest, and helping create a smoother sale process.
-
-There is no upfront fee. We only earn a commission after a successful deal.
-
-Would you like us to help you find a buyer?
-
-— DealHaus AI`,
-    ]
-
-    const currentIndex = options.indexOf(outreachMessage)
-    const nextIndex =
-      currentIndex === -1 || currentIndex === options.length - 1
-        ? 0
-        : currentIndex + 1
-
-    setOutreachMessage(options[nextIndex])
-  }
-
-  useEffect(() => {
-    const handleOpenAiOutreach = () => {
-      generateOutreachMessage()
-      setShowAiOutreach(true)
-    }
-
-    window.addEventListener('open-ai-outreach', handleOpenAiOutreach)
-
-    return () => {
-      window.removeEventListener('open-ai-outreach', handleOpenAiOutreach)
-    }
-  }, [selectedDeal, outreachMessage])
 
   const generateBuyerMatches = async () => {
     const { data: freshInventory, error: freshInventoryError } = await supabase
@@ -408,12 +327,12 @@ if (data) {
             const { error } = await supabase
               .from('inventory')
               .update({
-                status: 'closed',
-                deal_stage: 'closed',
-                final_sale_price: selectedDeal.price,
-                commission_collected: true,
-                closed_at: new Date().toISOString(),
-              })
+  status: 'closed',
+  deal_stage: 'sold',
+  final_sale_price: selectedDeal.price,
+  commission_collected: false,
+  closed_at: new Date().toISOString(),
+})
               .eq('id', selectedDeal.id)
 
             if (error) {
@@ -546,12 +465,6 @@ if (data) {
             onContactBuyer={contactBuyer}
           />
 
-          <AiPriorityQueue
-            deals={inventory}
-            onSelectDeal={(deal) => {
-              setSelectedDeal(deal)
-            }}
-          />
         </div>
       )}
 
@@ -674,15 +587,6 @@ if (data) {
           </h3>
         </div>
 
-        <div className="metric-card">
-          <p className="text-zinc-500 mb-3">
-            AI Activity Logs
-          </p>
-
-          <h3 className="text-4xl font-bold text-purple-400">
-            {aiLogs.length}
-          </h3>
-        </div>
       </div>
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
@@ -724,43 +628,6 @@ if (data) {
         </div>
       </div>
 
-      <AiActivityLog logs={aiLogs} />
-
-      {showAiOutreach && (
-        <AiOutreachPanel
-          deal={selectedDeal}
-          outreachMessage={outreachMessage}
-          setOutreachMessage={setOutreachMessage}
-          onGenerate={generateOutreachMessage}
-          onSend={async () => {
-            if (!selectedDeal || !outreachMessage.trim()) return
-
-            const { data, error } = await supabase
-              .from('ai_outreach_logs')
-              .insert({
-                deal_id: selectedDeal.id,
-                deal_title: selectedDeal.title,
-                outreach_message: outreachMessage,
-                status: 'sent',
-              })
-              .select()
-              .single()
-
-            if (error) {
-              alert(error.message)
-              return
-            }
-
-            if (data) {
-              setAiLogs((prev) => [data, ...prev])
-            }
-
-            alert('Seller outreach saved to AI activity log')
-            setShowAiOutreach(false)
-          }}
-          onClose={() => setShowAiOutreach(false)}
-        />
-      )}
     </div>
   )
 }
