@@ -16,14 +16,14 @@ export default function WorkflowControlCenter() {
 
     try {
       const timeoutPromise = new Promise<never>((_, reject) => {
-        window.setTimeout(() => {
-          reject(
-            new Error(
-              "Workflow stopped after 45 seconds because one of the workflow stages did not finish."
-            )
-          );
-        }, 45000);
-      });
+  window.setTimeout(() => {
+    reject(
+      new Error(
+        "Workflow stopped after 120 seconds because one of the workflow stages did not finish."
+      )
+    );
+  }, 120000);
+});
 
       const workflowResult: any = await Promise.race([
         runFullWorkflow(),

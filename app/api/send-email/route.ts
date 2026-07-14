@@ -5,6 +5,7 @@ type SendEmailBody = {
   to?: string;
   subject?: string;
   message?: string;
+  html?: string;
 };
 
 export async function POST(req: Request) {
@@ -23,12 +24,13 @@ export async function POST(req: Request) {
     const to = body.to?.trim();
     const subject = body.subject?.trim();
     const message = body.message?.trim();
+    const html = body.html?.trim();
 
-    if (!to || !subject || !message) {
+    if (!to || !subject || (!message && !html)) {
       return NextResponse.json(
         {
           error:
-            "Email recipient, subject, and message are all required.",
+            "Recipient, subject, and either an HTML or plain-text message are required.",
         },
         { status: 400 }
       );
@@ -37,10 +39,11 @@ export async function POST(req: Request) {
     const resend = new Resend(apiKey);
 
     const { data, error } = await resend.emails.send({
-      from: "DealHaus <onboarding@resend.dev>",
+      from: "DealHaus <invoices@dealhaus.us>",
       to,
       subject,
-      text: message,
+      text: message || "Your DealHaus commission invoice is attached below.",
+      html,
     });
 
     if (error) {
