@@ -104,6 +104,7 @@ export default function SubmitPage() {
       item_title: form.title,
       item_description: form.description,
       asking_price: Number(form.askingPrice || 0),
+      commission_rate: 10,
       seller_city: form.city,
       seller_state: form.state,
       photo_urls: uploadedPhotoUrls,

@@ -9,6 +9,7 @@ type SellerLead = {
   seller_name: string | null;
   seller_email: string | null;
   seller_phone: string | null;
+  preferred_contact_method: string | null;
   seller_city: string | null;
   seller_state: string | null;
   item_title: string;
@@ -52,7 +53,7 @@ export default function AIAcquisitionAgent({
     item_description: '',
     asking_price: '',
     estimated_resale_price: '',
-    commission_rate: '15',
+    commission_rate: '10',
   });
 
   async function loadLeads() {
@@ -84,7 +85,7 @@ export default function AIAcquisitionAgent({
     const resalePrice = Number(
       manualLead.estimated_resale_price || askingPrice * 1.5
     );
-    const commissionRate = Number(manualLead.commission_rate || 15);
+    const commissionRate = Number(manualLead.commission_rate || 10);
     const commission = Math.round(resalePrice * (commissionRate / 100));
 
     const acquisitionMessage = `Hi ${
@@ -143,7 +144,7 @@ export default function AIAcquisitionAgent({
       item_description: '',
       asking_price: '',
       estimated_resale_price: '',
-      commission_rate: '15',
+      commission_rate: '10',
     });
 
     await loadLeads();
@@ -170,7 +171,7 @@ export default function AIAcquisitionAgent({
         lead_status: 'approved',
         approval_status: 'approved',
         agreement_accepted: true,
-        commission_rate: lead.commission_rate || 15,
+        commission_rate: lead.commission_rate || 10,
       })
       .eq('id', lead.id);
 
@@ -209,7 +210,7 @@ export default function AIAcquisitionAgent({
       state: lead.seller_state || '',
       zip: '',
       agreement_accepted: true,
-      commission_rate: Number(lead.commission_rate || 15),
+      commission_rate: Number(lead.commission_rate || 10),
       status: 'submitted',
     });
 
@@ -511,6 +512,20 @@ export default function AIAcquisitionAgent({
                     {lead.seller_city || 'Unknown City'}
                     {lead.seller_state ? `, ${lead.seller_state}` : ''}
                   </p>
+                  <p className="mt-1 text-sm text-cyan-400">
+  Preferred contact:{' '}
+  <span className="font-semibold capitalize">
+    {(lead.preferred_contact_method || 'not selected').replaceAll('_', ' ')}
+  </span>
+  {lead.preferred_contact_method === 'email' && lead.seller_email
+    ? ` · ${lead.seller_email}`
+    : ''}
+  {(lead.preferred_contact_method === 'text' ||
+    lead.preferred_contact_method === 'call') &&
+  lead.seller_phone
+    ? ` · ${lead.seller_phone}`
+    : ''}
+</p>
                 </div>
 
                 <div className="text-right">
@@ -550,7 +565,7 @@ export default function AIAcquisitionAgent({
                 <div className="rounded-lg bg-zinc-900 p-3">
                   <p className="text-xs text-zinc-500">Commission Rate</p>
                   <p className="font-bold text-white">
-                    {lead.commission_rate || 15}%
+                    {lead.commission_rate || 10}%
                   </p>
                 </div>
               </div>

@@ -19,6 +19,57 @@ export default function DealModal({
 }: DealModalProps) {
   const buyerStatus = deal?.buyer_outreach_status || "not_contacted"
   if (!deal) return null
+  function contactSellerByPreference() {
+  const preferredMethod = String(
+    deal.preferred_contact_method || "email"
+  ).toLowerCase();
+
+  const sellerPhone = String(deal.seller_phone || "").replace(/[^\d+]/g, "");
+  const sellerEmail = String(deal.seller_email || "").trim();
+
+  const message = `Hi ${
+    deal.seller_name || "there"
+  }, this is DealHaus regarding your listing "${deal.title}".`;
+
+  if (preferredMethod === "text") {
+    if (!sellerPhone) {
+      alert("This seller selected text, but no phone number is available.");
+      onContactSeller();
+      return;
+    }
+
+    window.location.href = `sms:${sellerPhone}?body=${encodeURIComponent(
+      message
+    )}`;
+    return;
+  }
+
+  if (preferredMethod === "call") {
+    if (!sellerPhone) {
+      alert("This seller selected phone call, but no phone number is available.");
+      onContactSeller();
+      return;
+    }
+
+    window.location.href = `tel:${sellerPhone}`;
+    return;
+  }
+
+  if (!sellerEmail) {
+    alert("This seller selected email, but no email address is available.");
+    onContactSeller();
+    return;
+  }
+
+  const subject = `DealHaus: ${deal.title}`;
+
+  const emailUrl = `mailto:${sellerEmail}?subject=${encodeURIComponent(
+  subject
+)}&body=${encodeURIComponent(message)}`;
+
+alert(emailUrl);
+window.location.href = emailUrl;
+}
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 p-6 overflow-y-auto">
@@ -131,7 +182,7 @@ export default function DealModal({
             </button>
 
             <button
-              onClick={onContactSeller}
+              onClick={contactSellerByPreference}
               className="rounded-xl border border-zinc-700 px-4 py-3 font-semibold text-white hover:bg-zinc-900 transition"
             >
               Contact Seller

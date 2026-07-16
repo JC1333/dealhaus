@@ -90,7 +90,10 @@ if (existingBuyerTasks && existingBuyerTasks.length > 0) {
         .insert({
           inventory_item_id: match.inventory_id,
           item_title: match.inventory_title,
-          listing_price: 0,
+          listing_price:
+  activeInventory?.find(
+    (inventoryItem) => inventoryItem.id === match.inventory_id
+  )?.price || 0,
           buyer_name: match.buyer_name || "Workflow Buyer",
           buyer_platform: "Workflow Engine",
           outreach_message: `Hi ${

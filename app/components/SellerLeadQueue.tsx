@@ -7,6 +7,9 @@ type SellerLead = {
   id: string;
   item_title: string;
   seller_name: string;
+  seller_email: string | null;
+  seller_phone: string | null;
+  preferred_contact_method: string | null;
   seller_city: string;
   seller_state: string;
   asking_price: number | null;
@@ -114,6 +117,20 @@ async function copyMessage(message: string | null) {
                   {lead.seller_city || "Unknown City"},{" "}
                   {lead.seller_state || ""} · {lead.platform || "Unknown Platform"}
                 </p>
+                <p className="mt-1 text-sm text-cyan-400">
+  Preferred contact:{" "}
+  <span className="font-semibold capitalize">
+    {(lead.preferred_contact_method || "not selected").replaceAll("_", " ")}
+  </span>
+  {lead.preferred_contact_method === "email" && lead.seller_email
+    ? ` · ${lead.seller_email}`
+    : ""}
+  {(lead.preferred_contact_method === "text" ||
+    lead.preferred_contact_method === "call") &&
+  lead.seller_phone
+    ? ` · ${lead.seller_phone}`
+    : ""}
+</p>
               </div>
 
               <div className="md:text-right">

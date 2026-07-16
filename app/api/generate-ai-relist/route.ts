@@ -149,6 +149,9 @@ Rules:
           status: "active",
           seller_name: sellerName,
           seller_email: sellerLead?.seller_email || "",
+          seller_phone: sellerLead?.seller_phone || "",
+          preferred_contact_method:
+          sellerLead?.preferred_contact_method || "email",
           seller_city: sellerLead?.seller_city || "",
           seller_state: sellerLead?.seller_state || "",
           category: "Marketplace",
