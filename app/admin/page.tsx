@@ -133,9 +133,15 @@ export default function Home() {
         error: userError,
       } = await supabase.auth.getUser()
 
-      if (userError) {
-        console.error('Admin user check failed:', userError.message)
-      }
+      if (
+  userError &&
+  userError.message !== "Auth session missing!"
+) {
+  console.error(
+    "Admin user check failed:",
+    userError.message
+  )
+}
 
       await checkAdmin(user ?? null)
     } catch (error) {
@@ -400,7 +406,7 @@ if (activityError) {
     0
   )
 
-  const projectedCommissionEstimate = Math.floor(totalPipelineValue * 0.15);
+  const projectedCommissionEstimate = Math.floor(totalPipelineValue * 0.10);
 
   const pipeline = [
     {
@@ -421,71 +427,213 @@ if (activityError) {
     },
   ]
 const generateAiRelistListing = async (submission: any) => {
-  const relistPrice = Math.round(Number(submission.asking_price || 0) * 1.25)
+  setLoading(true)
 
-  const aiTitle = `Premium ${submission.item_title} - DealHaus Verified`
+  try {
+    let sellerLead: any = null
 
-  const aiDescription = `${submission.item_description}
+    if (
+      typeof submission.seller_lead_id === 'string' &&
+      submission.seller_lead_id.trim()
+    ) {
+      const { data } = await supabase
+        .from('seller_leads')
+        .select('*')
+        .eq('id', submission.seller_lead_id)
+        .maybeSingle()
+
+      sellerLead = data || null
+    }
+
+    if (!sellerLead && submission.item_title) {
+      const { data: matchingLeads, error: matchingLeadsError } = await supabase
+        .from('seller_leads')
+        .select('*')
+        .eq('item_title', submission.item_title)
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      if (matchingLeadsError) {
+        alert(matchingLeadsError.message)
+        return
+      }
+
+      if (matchingLeads && matchingLeads.length > 0) {
+        sellerLead =
+          matchingLeads.find(
+            (lead: any) =>
+              Array.isArray(lead.photo_urls) &&
+              lead.photo_urls.length > 0 &&
+              lead.seller_email &&
+              lead.seller_email !== 'seller@example.com'
+          ) ||
+          matchingLeads.find(
+            (lead: any) =>
+              lead.seller_email &&
+              lead.seller_email !== 'seller@example.com'
+          ) ||
+          matchingLeads.find(
+            (lead: any) =>
+              Array.isArray(lead.photo_urls) &&
+              lead.photo_urls.length > 0
+          ) ||
+          matchingLeads[0]
+      }
+    }
+
+    const source = sellerLead || submission
+
+    const askingPriceValue = Number(
+      source.asking_price || submission.asking_price || 0
+    )
+
+    const relistPrice = Math.round(askingPriceValue * 1.25)
+
+    const aiTitle = `Premium ${
+      source.item_title || submission.item_title || 'Marketplace Item'
+    } - DealHaus Verified`
+
+    const aiDescription = `${
+      source.item_description ||
+      submission.item_description ||
+      ''
+    }
 
 This item has been reviewed by DealHaus AI as a strong local marketplace opportunity. Buyer interest may be available based on category, price, condition, and resale demand.
 
 DealHaus helps coordinate serious buyer interest and seller communication for a smoother local transaction.`
 
-  const { error: updateError } = await supabase
-    .from('seller_onboarding')
-    .update({
-      ai_listing_title: aiTitle,
-      ai_listing_description: aiDescription,
-      ai_listing_price: relistPrice,
-      relist_status: 'generated',
-      buyer_match_status: 'ready',
-    })
-    .eq('id', submission.id)
+    const photoUrls = Array.isArray(source.photo_urls)
+      ? source.photo_urls.filter(
+          (url: unknown): url is string =>
+            typeof url === 'string' &&
+            /^https?:\/\//i.test(url)
+        )
+      : []
 
-  if (updateError) {
-    alert(updateError.message)
-    return
-  }
+    const fallbackImage =
+      'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?q=80&w=1200&auto=format&fit=crop'
 
-  const { error: inventoryError } = await supabase
-    .from('inventory')
-    .insert({
+    const finalImageUrls =
+      photoUrls.length > 0
+        ? photoUrls
+        : [fallbackImage]
+
+    if (sellerLead?.id) {
+      const { error: updateError } = await supabase
+        .from('seller_leads')
+        .update({
+          status: 'sent_to_relist_queue',
+        })
+        .eq('id', sellerLead.id)
+
+      if (updateError) {
+        alert(updateError.message)
+        return
+      }
+    }
+
+    const sellerEmailValue =
+      source.seller_email &&
+      source.seller_email !== 'seller@example.com'
+        ? source.seller_email
+        : submission.seller_email &&
+            submission.seller_email !== 'seller@example.com'
+          ? submission.seller_email
+          : ''
+
+    const inventoryPayload = {
       title: aiTitle,
       description: aiDescription,
       price: relistPrice,
       status: 'active',
-      image: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?q=80&w=1200&auto=format&fit=crop',
-      seller_name: submission.seller_name,
-      seller_email: submission.seller_email,
-      seller_city: submission.city,
-      seller_state: submission.state,
-      seller_zip: submission.zip,
-      asking_price: Number(submission.asking_price || 0),
+      image: finalImageUrls[0],
+      images: finalImageUrls,
+      seller_name:
+        source.seller_name ||
+        submission.seller_name ||
+        'Marketplace Seller',
+      seller_email: sellerEmailValue,
+      seller_phone:
+        source.seller_phone ||
+        submission.seller_phone ||
+        '',
+      preferred_contact_method:
+        source.preferred_contact_method ||
+        submission.preferred_contact_method ||
+        'email',
+      seller_city:
+        source.seller_city ||
+        submission.seller_city ||
+        submission.city ||
+        '',
+      seller_state:
+        source.seller_state ||
+        submission.seller_state ||
+        submission.state ||
+        '',
+      seller_zip:
+        source.seller_zip ||
+        submission.seller_zip ||
+        submission.zip ||
+        '',
+      asking_price: askingPriceValue,
       estimated_market_value: relistPrice,
-      arbitrage_spread: relistPrice - Number(submission.asking_price || 0),
-      projected_commission: Math.round(relistPrice * 0.15),
-      commission_rate: 15,
-      ai_priority: 'high',
-      ai_confidence: 88,
-      buyer_demand: 'medium',
-      active_buyers: 6,
-      estimated_days_to_sell: 7,
-      seller_status: 'approved',
-      outreach_sent: true,
-      ai_followup_due: 'scheduled',
-      close_probability: 72,
-    })
+      arbitrage_spread:
+        relistPrice - askingPriceValue,
+    }
 
-  if (inventoryError) {
-    alert(inventoryError.message)
-    return
+    const { data: matchingInventory, error: matchingInventoryError } =
+      await supabase
+        .from('inventory')
+        .select('id')
+        .eq('title', aiTitle)
+        .order('id', { ascending: false })
+        .limit(1)
+
+    if (matchingInventoryError) {
+      alert(matchingInventoryError.message)
+      return
+    }
+
+    const existingInventory = matchingInventory?.[0] || null
+
+    if (existingInventory?.id) {
+      const { error: inventoryUpdateError } = await supabase
+        .from('inventory')
+        .update(inventoryPayload)
+        .eq('id', existingInventory.id)
+
+      if (inventoryUpdateError) {
+        alert(inventoryUpdateError.message)
+        return
+      }
+    } else {
+      const { error: inventoryError } = await supabase
+        .from('inventory')
+        .insert(inventoryPayload)
+
+      if (inventoryError) {
+        alert(inventoryError.message)
+        return
+      }
+    }
+
+    await loadInventory()
+    await loadDashboardMetrics()
+
+    alert('AI relist listing created successfully and sent to Active Deals.')
+  } catch (error: any) {
+    console.error('AI relist generation failed:', error)
+    alert(
+      error?.message ||
+        'AI relist generation failed.'
+    )
+  } finally {
+    setLoading(false)
   }
-
-  alert('AI relist listing generated and added to Active Deals')
-
-  loadSellerSubmissions()
-  loadInventory()
 }
+
   const submitSellerOnboarding = async () => {
   if (!user) {
     alert('Please log in first')
@@ -511,7 +659,7 @@ DealHaus helps coordinate serious buyer interest and seller communication for a 
       state: sellerOnboardingForm.state,
       zip: sellerOnboardingForm.zip,
       agreement_accepted: sellerOnboardingForm.agreement_accepted,
-      commission_rate: 15,
+      commission_rate: 10,
       status: 'submitted',
     })
 

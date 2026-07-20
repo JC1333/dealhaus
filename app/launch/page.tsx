@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import HeroSection from "../components/public/HeroSection";
+import { useRouter } from "next/navigation";
 
 type Listing = {
   id: string | number;
@@ -16,6 +17,28 @@ type Listing = {
 export default function LaunchPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [facebookUrl, setFacebookUrl] = useState("");
+  const router = useRouter();
+  const [importPreview, setImportPreview] = useState<any>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [confirmSuccess, setConfirmSuccess] = useState<string | null>(null);
+  const [importedPhotoUrls, setImportedPhotoUrls] = useState<string[]>([]);
+  const [newPhotos, setNewPhotos] = useState<File[]>([]);
+  const [sellerForm, setSellerForm] = useState({
+  title: "",
+  price: "",
+  description: "",
+  category: "",
+  condition: "",
+  location: "",
+  sellerCity: "",
+  sellerState: "",
+  sellerZip: "",
+  sellerName: "",
+  sellerEmail: "",
+  sellerPhone: "",
+  preferredContact: "text",
+});
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => {
@@ -33,14 +56,163 @@ export default function LaunchPage() {
     setListings(data || []);
   }
 
-  function importListing() {
-    if (!facebookUrl) {
-      alert("Paste your Facebook Marketplace listing URL first.");
+  async function importListing() {
+  if (!facebookUrl.trim()) {
+    alert("Paste a Facebook Marketplace, OfferUp, or Craigslist URL.");
+    return;
+  }
+
+  try {
+    setImportLoading(true);
+
+    const response = await fetch("/api/import-deals", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        listingUrl: facebookUrl.trim(),
+      }),
+    });
+
+    const result = await response.json();
+
+    console.log(result);
+
+    if (!response.ok) {
+      alert(result.error || "Import failed.");
       return;
     }
 
-    alert("Next step: this Facebook listing URL will import into DealHaus.");
+    setImportPreview(result);
+
+    const detectedPhotoUrls = Array.isArray(
+      result.listing?.imageUrls
+    )
+      ? result.listing.imageUrls.filter(
+          (url: unknown): url is string =>
+            typeof url === "string" &&
+            /^https?:\/\//i.test(url)
+        )
+      : [];
+
+    setImportedPhotoUrls(detectedPhotoUrls);
+    setNewPhotos([]);
+
+    const detectedLocation =
+      typeof result.listing?.location === "string"
+        ? result.listing.location.trim()
+        : "";
+
+    const locationParts = detectedLocation
+      .split(",")
+      .map((part: string) => part.trim())
+      .filter(Boolean);
+
+    setSellerForm({
+      title: result.listing?.title || "",
+      price:
+        result.listing?.price !== null &&
+        result.listing?.price !== undefined
+          ? String(result.listing.price)
+          : "",
+      description: result.listing?.description || "",
+      category: result.listing?.category || "",
+      condition: result.listing?.condition || "",
+      location: detectedLocation,
+      sellerCity: locationParts[0] || "",
+      sellerState: locationParts[1] || "",
+      sellerZip: "",
+      sellerName: "",
+      sellerEmail: "",
+      sellerPhone: "",
+      preferredContact: "text",
+    });
+  } catch (error) {
+    console.error(error);
+    alert("Unable to contact the DealHaus importer.");
+  } finally {
+    setImportLoading(false);
   }
+}
+async function uploadSelectedPhotos() {
+  const uploadedPhotoUrls: string[] = [];
+
+  for (const photo of newPhotos) {
+    const safeName = photo.name.replace(/[^a-zA-Z0-9.-]/g, "-");
+    const fileName = `seller-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 10)}-${safeName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("seller-photos")
+      .upload(fileName, photo);
+
+    if (uploadError) {
+      throw new Error(`Photo upload failed: ${uploadError.message}`);
+    }
+
+    const { data } = supabase.storage
+      .from("seller-photos")
+      .getPublicUrl(fileName);
+
+    if (data.publicUrl) {
+      uploadedPhotoUrls.push(data.publicUrl);
+    }
+  }
+
+  return uploadedPhotoUrls;
+}
+
+async function confirmImportedListing() {
+  try {
+    setConfirmLoading(true);
+    setConfirmSuccess(null);
+
+    const uploadedPhotoUrls = await uploadSelectedPhotos();
+    const photoUrls = Array.from(
+      new Set([...importedPhotoUrls, ...uploadedPhotoUrls])
+    );
+
+    const response = await fetch("/api/confirm-import", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        importId: importPreview?.importId,
+        title: sellerForm.title,
+        price: sellerForm.price,
+        description: sellerForm.description,
+        category: sellerForm.category,
+        condition: sellerForm.condition,
+        location: sellerForm.location,
+        sellerCity: sellerForm.sellerCity,
+        sellerState: sellerForm.sellerState,
+        sellerZip: sellerForm.sellerZip,
+        sellerName: sellerForm.sellerName,
+        sellerEmail: sellerForm.sellerEmail,
+        sellerPhone: sellerForm.sellerPhone,
+        preferredContact: sellerForm.preferredContact,
+        photoUrls,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert(result.error || "The listing could not be submitted.");
+      return;
+    }
+
+    router.push("/submission-success");
+  } catch (error) {
+    console.error(error);
+    alert("Unable to submit the imported listing.");
+  } finally {
+    setConfirmLoading(false);
+  }
+}
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -81,6 +253,392 @@ export default function LaunchPage() {
   setFacebookUrl={setFacebookUrl}
   onImportListing={importListing}
 />
+{importLoading && (
+  <section className="rounded-3xl border border-cyan-900 bg-cyan-950/20 p-7">
+    <p className="font-bold text-cyan-400">Importing listing...</p>
+    <p className="mt-2 text-sm text-zinc-400">
+      DealHaus is reviewing the marketplace page and preparing your preview.
+    </p>
+  </section>
+)}
+
+{importPreview && !importLoading && (
+  <section className="rounded-3xl border border-green-800 bg-green-950/20 p-7">
+    <p className="text-sm font-bold uppercase text-green-400">
+      Imported Listing Preview
+    </p>
+
+    <h2 className="mt-2 text-3xl font-black">
+      {importPreview.import?.listing_title ||
+        importPreview.import?.title ||
+        "Imported Marketplace Listing"}
+    </h2>
+
+    <div className="mt-6">
+  <div className="rounded-2xl border border-zinc-800 bg-black p-5">
+    <p className="text-xs font-bold uppercase text-zinc-500">
+      Platform
+    </p>
+    <p className="mt-2 font-bold capitalize">
+      {importPreview.platform || "Marketplace"}
+    </p>
+  </div>
+</div>
+
+    {(importPreview.import?.listing_description ||
+      importPreview.import?.description) && (
+      <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs font-bold uppercase text-zinc-500">
+          Description
+        </p>
+
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-zinc-300">
+          {importPreview.import?.listing_description ||
+            importPreview.import?.description}
+        </p>
+      </div>
+    )}
+
+  <div className="mt-8 space-y-6">
+
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+    <div>
+      <label className="mb-2 block text-sm font-bold">
+        Listing Title
+      </label>
+
+      <input
+        value={sellerForm.title}
+        onChange={(e) =>
+          setSellerForm({
+            ...sellerForm,
+            title: e.target.value,
+          })
+        }
+        className="w-full rounded-xl border border-zinc-700 bg-black p-3"
+      />
+    </div>
+
+    <div>
+      <label className="mb-2 block text-sm font-bold">
+        Price
+      </label>
+
+      <input
+        type="number"
+        value={sellerForm.price}
+        onChange={(e) =>
+          setSellerForm({
+            ...sellerForm,
+            price: e.target.value,
+          })
+        }
+        className="w-full rounded-xl border border-zinc-700 bg-black p-3"
+      />
+    </div>
+
+  </div>
+
+  <div>
+
+    <label className="mb-2 block text-sm font-bold">
+      Description
+    </label>
+
+    <textarea
+      rows={6}
+      value={sellerForm.description}
+      onChange={(e) =>
+        setSellerForm({
+          ...sellerForm,
+          description: e.target.value,
+        })
+      }
+      className="w-full rounded-xl border border-zinc-700 bg-black p-3"
+    />
+
+  </div>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+    <div>
+
+      <label className="mb-2 block text-sm font-bold">
+        Category
+      </label>
+
+      <input
+        value={sellerForm.category}
+        onChange={(e) =>
+          setSellerForm({
+            ...sellerForm,
+            category: e.target.value,
+          })
+        }
+        className="w-full rounded-xl border border-zinc-700 bg-black p-3"
+      />
+
+    </div>
+
+    <div>
+
+      <label className="mb-2 block text-sm font-bold">
+        Condition
+      </label>
+
+      <input
+        value={sellerForm.condition}
+        onChange={(e) =>
+          setSellerForm({
+            ...sellerForm,
+            condition: e.target.value,
+          })
+        }
+        className="w-full rounded-xl border border-zinc-700 bg-black p-3"
+      />
+      </div>
+    </div>
+<div>
+  <label className="mb-2 block text-sm font-bold">
+    Detected Location
+  </label>
+
+  <input
+    value={sellerForm.location}
+    onChange={(e) =>
+      setSellerForm({
+        ...sellerForm,
+        location: e.target.value,
+      })
+    }
+    placeholder="Automatically detected marketplace location"
+    className="w-full rounded-xl border border-zinc-700 bg-black p-3"
+  />
+</div>
+
+<div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+  <div>
+    <label className="mb-2 block text-sm font-bold">
+      City
+    </label>
+
+    <input
+      value={sellerForm.sellerCity}
+      onChange={(e) =>
+        setSellerForm({
+          ...sellerForm,
+          sellerCity: e.target.value,
+        })
+      }
+      placeholder="Las Vegas"
+      className="w-full rounded-xl border border-zinc-700 bg-black p-3"
+    />
+  </div>
+
+  <div>
+    <label className="mb-2 block text-sm font-bold">
+      State
+    </label>
+
+    <input
+      value={sellerForm.sellerState}
+      onChange={(e) =>
+        setSellerForm({
+          ...sellerForm,
+          sellerState: e.target.value,
+        })
+      }
+      placeholder="NV"
+      className="w-full rounded-xl border border-zinc-700 bg-black p-3"
+    />
+  </div>
+
+  <div>
+    <label className="mb-2 block text-sm font-bold">
+      ZIP Code
+    </label>
+
+    <input
+      value={sellerForm.sellerZip}
+      onChange={(e) =>
+        setSellerForm({
+          ...sellerForm,
+          sellerZip: e.target.value,
+        })
+      }
+      placeholder="89101"
+      className="w-full rounded-xl border border-zinc-700 bg-black p-3"
+    />
+  </div>
+</div>
+  <div className="rounded-2xl border border-zinc-800 bg-black p-5">
+    <p className="font-bold">Listing Photos</p>
+    <p className="mt-2 text-sm text-zinc-400">
+      Photos imported automatically will be kept. You can also add your own photos before submitting.
+    </p>
+
+    {importedPhotoUrls.length > 0 && (
+      <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {importedPhotoUrls.map((url) => (
+          <img
+            key={url}
+            src={url}
+            alt="Imported marketplace listing"
+            className="h-28 w-full rounded-xl object-cover"
+          />
+        ))}
+      </div>
+    )}
+
+    <div className="mt-5">
+      <label className="mb-2 block text-sm font-bold">
+        Add Photos
+      </label>
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={(e) => setNewPhotos(Array.from(e.target.files || []))}
+        className="block w-full text-sm text-zinc-300"
+      />
+      {newPhotos.length > 0 && (
+        <p className="mt-2 text-sm text-green-400">
+          {newPhotos.length} photo{newPhotos.length === 1 ? "" : "s"} selected.
+        </p>
+      )}
+    </div>
+  </div>
+
+  <hr className="border-zinc-700" />
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+    <div>
+
+      <label className="mb-2 block text-sm font-bold">
+        Your Name
+      </label>
+
+      <input
+        value={sellerForm.sellerName}
+        onChange={(e) =>
+          setSellerForm({
+            ...sellerForm,
+            sellerName: e.target.value,
+          })
+        }
+        className="w-full rounded-xl border border-zinc-700 bg-black p-3"
+      />
+
+    </div>
+
+    <div>
+
+      <label className="mb-2 block text-sm font-bold">
+        Email
+      </label>
+
+      <input
+        type="email"
+        value={sellerForm.sellerEmail}
+        onChange={(e) =>
+          setSellerForm({
+            ...sellerForm,
+            sellerEmail: e.target.value,
+          })
+        }
+        className="w-full rounded-xl border border-zinc-700 bg-black p-3"
+      />
+
+    </div>
+
+  </div>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+    <div>
+
+      <label className="mb-2 block text-sm font-bold">
+        Phone
+      </label>
+
+      <input
+        value={sellerForm.sellerPhone}
+        onChange={(e) =>
+          setSellerForm({
+            ...sellerForm,
+            sellerPhone: e.target.value,
+          })
+        }
+        className="w-full rounded-xl border border-zinc-700 bg-black p-3"
+      />
+
+    </div>
+
+    <div>
+
+      <label className="mb-2 block text-sm font-bold">
+        Preferred Contact
+      </label>
+
+      <select
+        value={sellerForm.preferredContact}
+        onChange={(e) =>
+          setSellerForm({
+            ...sellerForm,
+            preferredContact: e.target.value,
+          })
+        }
+        className="w-full rounded-xl border border-zinc-700 bg-black p-3"
+      >
+        <option value="text">Text</option>
+        <option value="call">Call</option>
+        <option value="email">Email</option>
+      </select>
+
+    </div>
+
+  </div>
+{confirmSuccess && (
+  <div className="rounded-2xl border border-green-700 bg-green-950/40 p-5">
+    <p className="font-black text-green-400">Submission complete</p>
+    <p className="mt-2 text-sm text-zinc-300">{confirmSuccess}</p>
+  </div>
+)}
+  <div className="flex flex-wrap gap-3 pt-4">
+
+    <button
+  type="button"
+  onClick={confirmImportedListing}
+  disabled={confirmLoading || Boolean(confirmSuccess)}
+  className="rounded-xl bg-green-600 px-6 py-4 font-black text-white hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-60"
+>
+  {confirmLoading
+    ? "Submitting..."
+    : confirmSuccess
+      ? "Submitted"
+      : "Confirm and Continue"}
+</button>
+
+    <button
+      type="button"
+      onClick={() => {
+        setImportPreview(null);
+        setImportedPhotoUrls([]);
+        setNewPhotos([]);
+      }}
+      className="rounded-xl border border-zinc-700 px-6 py-4 font-bold text-white"
+    >
+      Cancel
+    </button>
+
+  </div>
+
+</div>
+  </section>
+)}
       <section
   id="sellers"
   className="rounded-3xl border border-zinc-800 bg-zinc-950 p-7"

@@ -169,14 +169,18 @@ Rules:
       inventoryId = inventoryItem.id;
     }
 
-    await supabase
+       await supabase
       .from("ai_relist_tasks")
       .update({
         inventory_item_id: inventoryId,
       })
       .eq("id", taskId);
 
-    return NextResponse.json({ success: true, task: updatedTask });
+    return NextResponse.json({
+      success: true,
+      task: updatedTask,
+      inventoryId,
+    });
   } catch (error: any) {
     console.log("Generate AI relist API error:", error);
 

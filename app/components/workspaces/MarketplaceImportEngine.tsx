@@ -8,8 +8,12 @@ type MarketplaceImport = {
   source_name: string | null;
   listing_url: string | null;
   listing_title: string | null;
+  listing_description: string | null;
   listing_price: number | null;
   listing_location: string | null;
+  image_urls: string[] | null;
+  category: string | null;
+  item_condition: string | null;
   import_status: string | null;
   ai_score: number | null;
   import_notes: string | null;
@@ -26,13 +30,25 @@ export default function MarketplaceImportEngine() {
     listing_location: "",
   });
   const [message, setMessage] = useState("");
+  const [selectedImportId, setSelectedImportId] = useState<string | null>(null);
 
+  const [sellerDetails, setSellerDetails] = useState({
+  sellerName: "",
+  sellerEmail: "",
+  sellerPhone: "",
+  sellerCity: "",
+  sellerState: "",
+  sellerZip: "",
+  preferredContact: "text",
+});
   async function loadImports() {
     const { data, error } = await supabase
-      .from("marketplace_imports")
-      .select("*")
-      .order("created_at", { ascending: false });
-
+  .from("marketplace_imports")
+  .select("*")
+  .neq("import_status", "confirmed")
+  .neq("import_status", "sent_to_seller_leads")
+  .neq("import_status", "archived")
+  .order("created_at", { ascending: false });
     if (error) {
       setMessage(error.message);
       return;
@@ -88,56 +104,109 @@ export default function MarketplaceImportEngine() {
     setMessage("Marketplace listing imported and scored.");
     await loadImports();
   }
+async function createSellerLead(item: MarketplaceImport) {
+  const sellerName = sellerDetails.sellerName.trim();
+  const sellerEmail = sellerDetails.sellerEmail.trim().toLowerCase();
+  const sellerPhone = sellerDetails.sellerPhone.trim();
+  const sellerCity = sellerDetails.sellerCity.trim();
+  const sellerState = sellerDetails.sellerState.trim();
+  const sellerZip = sellerDetails.sellerZip.trim();
 
-  async function createSellerLead(item: MarketplaceImport) {
-    const resalePrice = Number(item.listing_price || 0) * 1.5;
-    const commissionRate = 15;
-    const commission = Math.round(resalePrice * (commissionRate / 100));
+  if (
+    !sellerName ||
+    !sellerEmail ||
+    !sellerPhone ||
+    !sellerCity ||
+    !sellerState
+  ) {
+    setMessage(
+      "Enter seller name, email, phone, city, and state before creating the seller lead."
+    );
+    return;
+  }
 
-    const { error } = await supabase.from("seller_leads").insert({
-      seller_name: "Marketplace Seller",
-      seller_email: "seller@example.com",
-      seller_phone: "",
-      seller_city: item.listing_location || "",
-      seller_state: "",
-      item_title: item.listing_title,
-      item_description: `Imported from ${item.source_name || "marketplace"}.`,
-      asking_price: item.listing_price,
-      estimated_resale_price: resalePrice,
-      estimated_commission: commission,
-      lead_source: "Marketplace Import Engine",
+  const price = Number(item.listing_price || 0);
+
+  const { error: leadError } = await supabase
+    .from("seller_leads")
+    .insert({
+      seller_name: sellerName,
+      seller_email: sellerEmail,
+      seller_phone: sellerPhone,
+      seller_city: sellerCity,
+      seller_state: sellerState,
+      seller_zip: sellerZip || null,
+      preferred_contact_method: sellerDetails.preferredContact,
+      item_title: item.listing_title || "Marketplace Listing",
+      item_description: item.listing_description || "",
+      asking_price: price,
+      lead_source: item.source_name
+        ? `${item.source_name} Import`
+        : "Marketplace Import",
       marketplace_source: item.source_name,
       marketplace_listing_url: item.listing_url,
-      seller_profile_url: "",
+      lead_status: "new",
+      status: "new",
+      approval_status: "not_approved",
+      agreement_accepted: false,
+      commission_rate: 10,
+      ai_score: item.ai_score || 80,
+      acquisition_score: item.ai_score || 80,
       lead_priority:
         Number(item.ai_score || 0) >= 90
           ? "high"
           : Number(item.ai_score || 0) >= 80
           ? "medium"
           : "low",
-      lead_status: "new",
-      approval_status: "not_approved",
-      agreement_accepted: false,
-      commission_rate: commissionRate,
-      approval_notes: "",
-      acquisition_message: `Hi, I help sellers get more exposure for their marketplace listings without the hassle of managing buyer inquiries. Your ${item.listing_title} looks like a strong fit for our buyer network. We can professionally relist it, handle buyer interest, and only take a commission if it sells.`,
-      outreach_notes: "",
-      ai_score: item.ai_score,
+      outreach_status: "not_contacted",
+      photo_urls: Array.isArray(item.image_urls)
+        ? item.image_urls
+        : [],
     });
 
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
-
-    await supabase
-      .from("marketplace_imports")
-      .update({ import_status: "sent_to_seller_leads" })
-      .eq("id", item.id);
-
-    setMessage("Seller lead created from marketplace import.");
-    await loadImports();
+  if (leadError) {
+    setMessage(leadError.message);
+    return;
   }
+
+  const { error: importError } = await supabase
+    .from("marketplace_imports")
+    .update({
+      seller_name: sellerName,
+      seller_email: sellerEmail,
+      seller_phone: sellerPhone,
+      seller_city: sellerCity,
+      seller_state: sellerState,
+      seller_zip: sellerZip || null,
+      preferred_contact_method: sellerDetails.preferredContact,
+      seller_confirmed: true,
+      import_status: "sent_to_seller_leads",
+      import_notes:
+        "Seller information confirmed and seller lead created.",
+    })
+    .eq("id", item.id);
+
+  if (importError) {
+    setMessage(importError.message);
+    return;
+  }
+
+  setSelectedImportId(null);
+
+  setSellerDetails({
+    sellerName: "",
+    sellerEmail: "",
+    sellerPhone: "",
+    sellerCity: "",
+    sellerState: "",
+    sellerZip: "",
+    preferredContact: "text",
+  });
+
+  setMessage("Seller lead created successfully.");
+
+  await loadImports();
+}
 
   return (
     <section className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
@@ -265,19 +334,143 @@ export default function MarketplaceImportEngine() {
               </p>
             </div>
 
-            <button
-              onClick={() => createSellerLead(item)}
-              disabled={item.import_status === "sent_to_seller_leads"}
-              className={`mt-3 w-full rounded-xl px-4 py-3 text-sm font-bold text-black ${
-                item.import_status === "sent_to_seller_leads"
-                  ? "bg-zinc-600 cursor-not-allowed"
-                  : "bg-green-400 hover:bg-green-300"
-              }`}
-            >
-              {item.import_status === "sent_to_seller_leads"
-                ? "Already Sent to Seller Leads"
-                : "Create Seller Lead"}
-            </button>
+            {selectedImportId === item.id ? (
+  <div className="mt-4 space-y-3 rounded-xl border border-green-800 bg-green-950/20 p-4">
+    <p className="font-bold text-green-400">
+      Confirm Seller Information
+    </p>
+
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <input
+        value={sellerDetails.sellerName}
+        onChange={(e) =>
+          setSellerDetails({
+            ...sellerDetails,
+            sellerName: e.target.value,
+          })
+        }
+        placeholder="Seller name"
+        className="rounded-lg border border-zinc-700 bg-black px-3 py-2 text-sm text-white"
+      />
+
+      <input
+        type="email"
+        value={sellerDetails.sellerEmail}
+        onChange={(e) =>
+          setSellerDetails({
+            ...sellerDetails,
+            sellerEmail: e.target.value,
+          })
+        }
+        placeholder="Seller email"
+        className="rounded-lg border border-zinc-700 bg-black px-3 py-2 text-sm text-white"
+      />
+
+      <input
+        value={sellerDetails.sellerPhone}
+        onChange={(e) =>
+          setSellerDetails({
+            ...sellerDetails,
+            sellerPhone: e.target.value,
+          })
+        }
+        placeholder="Seller phone"
+        className="rounded-lg border border-zinc-700 bg-black px-3 py-2 text-sm text-white"
+      />
+
+      <select
+        value={sellerDetails.preferredContact}
+        onChange={(e) =>
+          setSellerDetails({
+            ...sellerDetails,
+            preferredContact: e.target.value,
+          })
+        }
+        className="rounded-lg border border-zinc-700 bg-black px-3 py-2 text-sm text-white"
+      >
+        <option value="text">Text</option>
+        <option value="call">Call</option>
+        <option value="email">Email</option>
+      </select>
+
+      <input
+        value={sellerDetails.sellerCity}
+        onChange={(e) =>
+          setSellerDetails({
+            ...sellerDetails,
+            sellerCity: e.target.value,
+          })
+        }
+        placeholder="City"
+        className="rounded-lg border border-zinc-700 bg-black px-3 py-2 text-sm text-white"
+      />
+
+      <input
+        value={sellerDetails.sellerState}
+        onChange={(e) =>
+          setSellerDetails({
+            ...sellerDetails,
+            sellerState: e.target.value,
+          })
+        }
+        placeholder="State"
+        className="rounded-lg border border-zinc-700 bg-black px-3 py-2 text-sm text-white"
+      />
+
+      <input
+        value={sellerDetails.sellerZip}
+        onChange={(e) =>
+          setSellerDetails({
+            ...sellerDetails,
+            sellerZip: e.target.value,
+          })
+        }
+        placeholder="ZIP code"
+        className="rounded-lg border border-zinc-700 bg-black px-3 py-2 text-sm text-white md:col-span-2"
+      />
+    </div>
+
+    <div className="flex gap-3">
+      <button
+        type="button"
+        onClick={() => createSellerLead(item)}
+        className="flex-1 rounded-xl bg-green-400 px-4 py-3 text-sm font-bold text-black hover:bg-green-300"
+      >
+        Confirm + Create Seller Lead
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setSelectedImportId(null)}
+        className="rounded-xl border border-zinc-700 px-4 py-3 text-sm font-bold text-white"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+) : (
+  <button
+    type="button"
+    onClick={() => {
+      setSelectedImportId(item.id);
+
+      setSellerDetails({
+        sellerName: "",
+        sellerEmail: "",
+        sellerPhone: "",
+        sellerCity: item.listing_location || "",
+        sellerState: "",
+        sellerZip: "",
+        preferredContact: "text",
+      });
+
+      setMessage("");
+    }}
+    className="mt-3 w-full rounded-xl bg-green-400 px-4 py-3 text-sm font-bold text-black hover:bg-green-300"
+  >
+    Create Seller Lead
+  </button>
+)}
           </div>
         ))}
       </div>

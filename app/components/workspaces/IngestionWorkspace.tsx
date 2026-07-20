@@ -30,9 +30,16 @@ export default function IngestionWorkspace({
 
   useEffect(() => {
     const loadDeals = async () => {
-      const response = await fetch('/api/import-deals')
-      const data = await response.json()
-      setImportedDeals(data)
+      const response = await fetch("/api/import-deals");
+const data = await response.json();
+
+setImportedDeals(
+  Array.isArray(data)
+    ? data
+    : Array.isArray(data?.imports)
+      ? data.imports
+      : []
+);
     }
 
     loadDeals()
@@ -168,7 +175,7 @@ export default function IngestionWorkspace({
             </div>
 
             <div className="space-y-4">
-              {importedDeals.slice(0, 5).map((deal, index) => (
+              {(Array.isArray(importedDeals) ? importedDeals : []).slice(0, 5).map((deal, index) => (
                 <div
                   key={index}
                   className="bg-black border border-zinc-800 rounded-2xl p-5"

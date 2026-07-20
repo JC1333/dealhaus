@@ -111,58 +111,46 @@ async function generateAiRelist(task: ListingPrepTask) {
     setMessage(result.error || "AI relist generation failed.");
     return;
   }
+const inventoryId = result.inventoryId;
 
-  setMessage("Creating inventory item...");
+if (!inventoryId) {
+  setMessage("AI relist was generated, but no inventory item ID was returned.");
+  return;
+}
 
-  const generatedTask = result.task;
-
-  const { data: inventoryItem, error: inventoryError } = await supabase
-    .from("inventory")
-    .insert({
-      title: generatedTask.ai_title,
-      description: generatedTask.ai_description,
-      price: generatedTask.ai_price_recommendation,
-      status: "active",
-      seller_name: generatedTask.seller_name,
-      asking_price: generatedTask.asking_price,
-      profit_score: generatedTask.estimated_profit,
-    })
-    .select()
-    .single();
-
-  if (inventoryError) {
-    setMessage("Inventory insert error: " + inventoryError.message);
-    return;
-  }
-
-  const { error: updateError } = await supabase
-    .from("ai_relist_tasks")
-    .update({
-      inventory_item_id: inventoryItem.id,
-      relist_status: "listed",
-    })
-    .eq("id", generatedTask.id);
-
-  if (updateError) {
-    setMessage("Relist task update error: " + updateError.message);
-    return;
-  }
-  const { data: existingPublishTask } = await supabase
-  .from("marketplace_publish_tasks")
-  .select("id")
-  .eq("inventory_item_id", inventoryItem.id)
-  .limit(1)
-  .single();
-
-if (!existingPublishTask) {
+const { data: existingPublishTask, error: publishLookupError } =
   await supabase
     .from("marketplace_publish_tasks")
+    .select("id")
+    .eq("inventory_item_id", inventoryId)
+    .limit(1)
+    .maybeSingle();
+
+if (publishLookupError) {
+  setMessage(
+    "Marketplace publish lookup error: " +
+      publishLookupError.message
+  );
+  return;
+}
+
+if (!existingPublishTask) {
+  const { error: publishInsertError } = await supabase
+    .from("marketplace_publish_tasks")
     .insert({
-      inventory_item_id: inventoryItem.id,
-      item_title: inventoryItem.title,
-      listing_price: inventoryItem.price,
+      inventory_item_id: inventoryId,
+      item_title: result.task.ai_title,
+      listing_price: result.task.ai_price_recommendation,
       publish_status: "ready_to_publish",
     });
+
+  if (publishInsertError) {
+    setMessage(
+      "Marketplace publish task error: " +
+        publishInsertError.message
+    );
+    return;
+  }
 }
 
   setMessage("AI relist generated and added to inventory.");

@@ -324,25 +324,203 @@ if (data) {
           onCloseDeal={async () => {
             if (!selectedDeal) return
 
-            const { error } = await supabase
-              .from('inventory')
-              .update({
-  status: 'closed',
-  deal_stage: 'sold',
-  final_sale_price: selectedDeal.price,
-  commission_collected: false,
-  closed_at: new Date().toISOString(),
-})
-              .eq('id', selectedDeal.id)
+            const salePrice = Number(
+              selectedDeal.final_sale_price || selectedDeal.price || 0
+            )
+            const commissionRate = Number(
+              selectedDeal.commission_rate || 10
+            )
+            const commissionAmount = Number(
+              ((salePrice * commissionRate) / 100).toFixed(2)
+            )
+            const sellerPayout = Number(
+              (salePrice - commissionAmount).toFixed(2)
+            )
 
-            if (error) {
-              alert(error.message)
+            const { data: existingPublishTasks, error: publishLookupError } =
+              await supabase
+                .from('marketplace_publish_tasks')
+                .select('id')
+                .eq('inventory_item_id', selectedDeal.id)
+                .order('id', { ascending: false })
+                .limit(1)
+
+            if (publishLookupError) {
+              alert('Marketplace task lookup failed: ' + publishLookupError.message)
               return
             }
 
-            alert(`${selectedDeal.title} marked as closed`)
+            let publishTaskId = existingPublishTasks?.[0]?.id || null
+
+            if (publishTaskId) {
+              const { error: publishUpdateError } = await supabase
+                .from('marketplace_publish_tasks')
+                .update({
+                  publish_status: 'sold',
+                  listing_price: salePrice,
+                })
+                .eq('id', publishTaskId)
+
+              if (publishUpdateError) {
+                alert('Marketplace task update failed: ' + publishUpdateError.message)
+                return
+              }
+            } else {
+              const { data: newPublishTask, error: publishInsertError } =
+                await supabase
+                  .from('marketplace_publish_tasks')
+                  .insert({
+                    inventory_item_id: selectedDeal.id,
+                    item_title: selectedDeal.title,
+                    listing_price: salePrice,
+                    publish_status: 'sold',
+                  })
+                  .select('id')
+                  .single()
+
+              if (publishInsertError) {
+                alert('Marketplace task creation failed: ' + publishInsertError.message)
+                return
+              }
+
+              publishTaskId = newPublishTask?.id || null
+            }
+
+            const { data: existingRevenueRecords, error: revenueLookupError } =
+              await supabase
+                .from('revenue_records')
+                .select('id')
+                .eq('inventory_item_id', selectedDeal.id)
+                .order('id', { ascending: false })
+                .limit(1)
+
+            if (revenueLookupError) {
+              alert('Revenue lookup failed: ' + revenueLookupError.message)
+              return
+            }
+
+            let revenueRecordId = existingRevenueRecords?.[0]?.id || null
+
+            const revenuePayload = {
+              inventory_item_id: selectedDeal.id,
+              item_title: selectedDeal.title,
+              sale_price: salePrice,
+              commission_rate: commissionRate,
+              commission_amount: commissionAmount,
+              seller_payout: sellerPayout,
+              revenue_status: 'earned',
+            }
+
+            if (revenueRecordId) {
+              const { error: revenueUpdateError } = await supabase
+                .from('revenue_records')
+                .update(revenuePayload)
+                .eq('id', revenueRecordId)
+
+              if (revenueUpdateError) {
+                alert('Revenue update failed: ' + revenueUpdateError.message)
+                return
+              }
+            } else {
+              const { data: newRevenueRecord, error: revenueInsertError } =
+                await supabase
+                  .from('revenue_records')
+                  .insert(revenuePayload)
+                  .select('id')
+                  .single()
+
+              if (revenueInsertError) {
+                alert('Revenue creation failed: ' + revenueInsertError.message)
+                return
+              }
+
+              revenueRecordId = newRevenueRecord?.id || null
+            }
+
+            const { data: existingTransactions, error: transactionLookupError } =
+              await supabase
+                .from('brokerage_transactions')
+                .select('id')
+                .eq('inventory_item_id', selectedDeal.id)
+                .order('id', { ascending: false })
+                .limit(1)
+
+            if (transactionLookupError) {
+              alert('Transaction lookup failed: ' + transactionLookupError.message)
+              return
+            }
+
+            const transactionPayload = {
+              inventory_item_id: selectedDeal.id,
+              marketplace_publish_task_id: publishTaskId,
+              revenue_record_id: revenueRecordId,
+              item_title: selectedDeal.title,
+              buyer_name: selectedDeal.buyer_name || 'Buyer',
+              seller_name: selectedDeal.seller_name || 'Marketplace Seller',
+              seller_email: selectedDeal.seller_email || '',
+              sale_price: salePrice,
+              commission_rate: commissionRate,
+              commission_amount: commissionAmount,
+              seller_payout: sellerPayout,
+              meetup_status: 'completed',
+              buyer_confirmed: true,
+              seller_confirmed: true,
+              invoice_status: 'not_sent',
+              payment_status: 'unpaid',
+              transaction_status: 'pending',
+            }
+
+            const existingTransactionId = existingTransactions?.[0]?.id || null
+
+            if (existingTransactionId) {
+              const { error: transactionUpdateError } = await supabase
+                .from('brokerage_transactions')
+                .update(transactionPayload)
+                .eq('id', existingTransactionId)
+
+              if (transactionUpdateError) {
+                alert('Transaction update failed: ' + transactionUpdateError.message)
+                return
+              }
+            } else {
+              const { error: transactionInsertError } = await supabase
+                .from('brokerage_transactions')
+                .insert(transactionPayload)
+
+              if (transactionInsertError) {
+                alert('Transaction creation failed: ' + transactionInsertError.message)
+                return
+              }
+            }
+
+            const { data: closedInventory, error: inventoryCloseError } =
+              await supabase
+                .from('inventory')
+                .update({
+                  status: 'closed',
+                  deal_stage: 'sold',
+                  final_sale_price: salePrice,
+                  commission_collected: false,
+                  closed_at: new Date().toISOString(),
+                })
+                .eq('id', selectedDeal.id)
+                .select('id,status')
+                .single()
+
+            if (inventoryCloseError || closedInventory?.status !== 'closed') {
+              alert(
+                'Inventory close failed: ' +
+                  (inventoryCloseError?.message || 'Deal did not move to closed status.')
+              )
+              return
+            }
+
             closeModal()
-            loadInventory()
+            await loadInventory()
+
+            alert(
+              `${selectedDeal.title} sale completed. $${commissionAmount.toLocaleString()} commission moved to Revenue Analytics.`
+            )
           }}
         />
       )}

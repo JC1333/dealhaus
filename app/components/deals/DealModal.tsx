@@ -1,7 +1,5 @@
 'use client'
 
-import { useState } from "react"
-import { supabase } from "@/lib/supabase"
 import BuyerMatchPanel from "./BuyerMatchPanel"
 
 type DealModalProps = {
@@ -18,58 +16,59 @@ export default function DealModal({
   onCloseDeal,
 }: DealModalProps) {
   const buyerStatus = deal?.buyer_outreach_status || "not_contacted"
+
   if (!deal) return null
+
   function contactSellerByPreference() {
-  const preferredMethod = String(
-    deal.preferred_contact_method || "email"
-  ).toLowerCase();
+    const preferredMethod = String(
+      deal.preferred_contact_method || "email"
+    ).toLowerCase()
 
-  const sellerPhone = String(deal.seller_phone || "").replace(/[^\d+]/g, "");
-  const sellerEmail = String(deal.seller_email || "").trim();
+    const sellerPhone = String(deal.seller_phone || "").replace(/[^\d+]/g, "")
+    const sellerEmail = String(deal.seller_email || "").trim()
 
-  const message = `Hi ${
-    deal.seller_name || "there"
-  }, this is DealHaus regarding your listing "${deal.title}".`;
+    const message = `Hi ${
+      deal.seller_name || "there"
+    }, this is DealHaus regarding your listing "${deal.title}".`
 
-  if (preferredMethod === "text") {
-    if (!sellerPhone) {
-      alert("This seller selected text, but no phone number is available.");
-      onContactSeller();
-      return;
+    if (preferredMethod === "text") {
+      if (!sellerPhone) {
+        alert("This seller selected text, but no phone number is available.")
+        onContactSeller()
+        return
+      }
+
+      onContactSeller()
+        return
     }
 
-    window.location.href = `sms:${sellerPhone}?body=${encodeURIComponent(
-      message
-    )}`;
-    return;
-  }
+    if (preferredMethod === "call") {
+      if (!sellerPhone) {
+        alert("This seller selected phone call, but no phone number is available.")
+        onContactSeller()
+        return
+      }
 
-  if (preferredMethod === "call") {
-    if (!sellerPhone) {
-      alert("This seller selected phone call, but no phone number is available.");
-      onContactSeller();
-      return;
+      onContactSeller()
+        return
     }
 
-    window.location.href = `tel:${sellerPhone}`;
-    return;
+    if (!sellerEmail) {
+      alert("This seller selected email, but no email address is available.")
+      onContactSeller()
+      return
+    }
+
+    const subject = `DealHaus: ${deal.title}`
+
+    const gmailComposeUrl =
+      `https://mail.google.com/mail/?view=cm&fs=1` +
+      `&to=${encodeURIComponent(sellerEmail)}` +
+      `&su=${encodeURIComponent(subject)}` +
+      `&body=${encodeURIComponent(message)}`
+
+    window.open(gmailComposeUrl, "_blank", "noopener,noreferrer")
   }
-
-  if (!sellerEmail) {
-    alert("This seller selected email, but no email address is available.");
-    onContactSeller();
-    return;
-  }
-
-  const subject = `DealHaus: ${deal.title}`;
-
-  const emailUrl = `mailto:${sellerEmail}?subject=${encodeURIComponent(
-  subject
-)}&body=${encodeURIComponent(message)}`;
-
-alert(emailUrl);
-window.location.href = emailUrl;
-}
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 p-6 overflow-y-auto">
@@ -187,7 +186,6 @@ window.location.href = emailUrl;
             >
               Contact Seller
             </button>
-
           </div>
         </div>
       </div>
