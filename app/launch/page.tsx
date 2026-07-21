@@ -273,6 +273,19 @@ async function confirmImportedListing() {
         importPreview.import?.title ||
         "Imported Marketplace Listing"}
     </h2>
+    {!sellerForm.title && !sellerForm.price && (
+  <div className="mt-5 rounded-2xl border border-yellow-700 bg-yellow-950/30 p-5">
+    <p className="font-black text-yellow-300">
+      This marketplace did not share the listing details
+    </p>
+
+    <p className="mt-2 text-sm leading-6 text-yellow-100/80">
+      Facebook and OfferUp sometimes block automatic listing extraction.
+      Please enter the item title, price, description, and photos below so
+      DealHaus can review your item.
+    </p>
+  </div>
+)}
 
     <div className="mt-6">
   <div className="rounded-2xl border border-zinc-800 bg-black p-5">
@@ -317,6 +330,7 @@ async function confirmImportedListing() {
             title: e.target.value,
           })
         }
+        placeholder="Example: 6 Piece Outdoor Patio Set"
         className="w-full rounded-xl border border-zinc-700 bg-black p-3"
       />
     </div>
@@ -335,6 +349,7 @@ async function confirmImportedListing() {
             price: e.target.value,
           })
         }
+        placeholder="Example: 450"
         className="w-full rounded-xl border border-zinc-700 bg-black p-3"
       />
     </div>
@@ -356,6 +371,7 @@ async function confirmImportedListing() {
           description: e.target.value,
         })
       }
+      placeholder="Describe the condition, dimensions, age, included items, and any important details."
       className="w-full rounded-xl border border-zinc-700 bg-black p-3"
     />
 
@@ -377,6 +393,7 @@ async function confirmImportedListing() {
             category: e.target.value,
           })
         }
+        placeholder="Example: Furniture, Electronics, Appliances"
         className="w-full rounded-xl border border-zinc-700 bg-black p-3"
       />
 
@@ -396,6 +413,7 @@ async function confirmImportedListing() {
             condition: e.target.value,
           })
         }
+        placeholder="Example: New, Like New, Good, Fair"
         className="w-full rounded-xl border border-zinc-700 bg-black p-3"
       />
       </div>
