@@ -20,7 +20,7 @@ export default function FAQPage() {
             ["Do I still own my item?", "Yes. You keep ownership unless you choose to complete a sale."],
             ["Can I still sell it myself?", "Yes. DealHaus helps market and coordinate interest, but you may still sell it directly."],
             ["What items do you accept?", "Furniture, patio sets, appliances, home goods, tools, electronics, and other local resale items with strong demand."],
-            ["What areas do you serve?", "DealHaus is currently focused on Las Vegas, with plans to expand."],
+            ["What areas do you serve?", "DealHaus currently serves sellers throughout the state of Nevada."],
             ["Is DealHaus only furniture?", "No. DealHaus is built as an AI-powered local marketplace brokerage for multiple categories."],
           ].map(([q, a]) => (
             <div key={q} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">

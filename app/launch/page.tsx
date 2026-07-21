@@ -529,18 +529,71 @@ async function confirmImportedListing() {
     type="file"
     accept="image/*"
     multiple
-    onChange={(e) => setNewPhotos(Array.from(e.target.files || []))}
     className="sr-only"
+    onChange={(e) => {
+      const selectedFiles = Array.from(e.target.files || []);
+
+      setNewPhotos((currentPhotos) => [
+        ...currentPhotos,
+        ...selectedFiles,
+      ]);
+
+      e.target.value = "";
+    }}
   />
 
   <p className="mt-2 text-sm text-zinc-400">
-    Upload one or more clear photos of your item.
+    Upload one or more clear photos of your item. You can remove any
+    photo before submitting.
   </p>
 
   {newPhotos.length > 0 && (
-    <p className="mt-2 text-sm font-bold text-green-400">
-      {newPhotos.length} photo{newPhotos.length === 1 ? "" : "s"} selected.
-    </p>
+    <div className="mt-4">
+      <p className="mb-3 text-sm font-bold text-green-400">
+        {newPhotos.length} photo
+        {newPhotos.length === 1 ? "" : "s"} selected
+      </p>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+        {newPhotos.map((photo, index) => {
+          const previewUrl = URL.createObjectURL(photo);
+
+          return (
+            <div
+              key={`${photo.name}-${photo.lastModified}-${index}`}
+              className="overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950"
+            >
+              <img
+                src={previewUrl}
+                alt={`Selected listing photo ${index + 1}`}
+                className="h-36 w-full object-cover"
+                onLoad={() => URL.revokeObjectURL(previewUrl)}
+              />
+
+              <div className="p-3">
+                <p className="truncate text-xs text-zinc-400">
+                  {photo.name}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setNewPhotos((currentPhotos) =>
+                      currentPhotos.filter(
+                        (_, photoIndex) => photoIndex !== index
+                      )
+                    )
+                  }
+                  className="mt-2 w-full cursor-pointer rounded-lg border border-red-500 px-3 py-2 text-sm font-bold text-red-400 transition hover:bg-red-500 hover:text-white"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   )}
 </div>
   </div>
@@ -947,7 +1000,7 @@ async function confirmImportedListing() {
       <ul className="space-y-2 text-sm text-zinc-400">
         <li>⭐⭐⭐⭐⭐ 5.0 Rating</li>
         <li>200+ Marketplace Reviews</li>
-        <li>Las Vegas, Nevada</li>
+        <li>Serving sellers throughout Nevada</li>
         <li>Established 2026</li>
       </ul>
     </div>

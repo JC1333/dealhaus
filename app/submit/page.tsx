@@ -255,7 +255,7 @@ export default function SubmitPage() {
                 [
                   "◎",
                   "Local Marketplace Reach",
-                  "Serving Las Vegas, Henderson, North Las Vegas, Boulder City, Pahrump, Mesquite, Laughlin, Primm, and surrounding Nevada areas.",
+                  "Serving sellers throughout the state of Nevada.",
                 ],
                 [
                   "♡",
