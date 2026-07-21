@@ -265,8 +265,10 @@ async function confirmImportedListing() {
 {importPreview && !importLoading && (
   <section className="rounded-3xl border border-green-800 bg-green-950/20 p-7">
     <p className="text-sm font-bold uppercase text-green-400">
-      Imported Listing Preview
-    </p>
+  {!sellerForm.title && !sellerForm.price
+    ? "Complete Your Listing Information"
+    : "Imported Listing Preview"}
+</p>
 
     <h2 className="mt-2 text-3xl font-black">
       {importPreview.import?.listing_title ||
