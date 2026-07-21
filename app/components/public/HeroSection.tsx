@@ -75,7 +75,7 @@ export default function HeroSection({
 
         <button
           onClick={onImportListing}
-          className="mt-4 w-full rounded-xl bg-green-400 px-6 py-4 font-black text-black"
+          className="mt-4 w-full cursor-pointer rounded-xl bg-green-400 px-6 py-4 font-black text-black hover:bg-green-300"
         >
           Import Listing
         </button>
