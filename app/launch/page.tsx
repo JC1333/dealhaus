@@ -274,12 +274,12 @@ async function confirmImportedListing() {
         "Imported Marketplace Listing"}
     </h2>
     {!sellerForm.title && !sellerForm.price && (
-  <div className="mt-5 rounded-2xl border border-yellow-700 bg-yellow-950/30 p-5">
-    <p className="font-black text-yellow-300">
+  <div className="mt-5 rounded-2xl border border-cyan-800 bg-cyan-950/20 p-5">
+    <p className="font-black text-cyan-400">
       This marketplace did not share the listing details
     </p>
 
-    <p className="mt-2 text-sm leading-6 text-yellow-100/80">
+    <p className="mt-2 text-sm leading-6 text-zinc-300">
       Facebook and OfferUp sometimes block automatic listing extraction.
       Please enter the item title, price, description, and photos below so
       DealHaus can review your item.
@@ -511,22 +511,36 @@ async function confirmImportedListing() {
     )}
 
     <div className="mt-5">
-      <label className="mb-2 block text-sm font-bold">
-        Add Photos
-      </label>
-      <input
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={(e) => setNewPhotos(Array.from(e.target.files || []))}
-        className="block w-full text-sm text-zinc-300"
-      />
-      {newPhotos.length > 0 && (
-        <p className="mt-2 text-sm text-green-400">
-          {newPhotos.length} photo{newPhotos.length === 1 ? "" : "s"} selected.
-        </p>
-      )}
-    </div>
+  <p className="mb-2 block text-sm font-bold">
+    Add Photos
+  </p>
+
+  <label
+    htmlFor="listing-photo-upload"
+    className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-green-400 px-5 py-3 font-bold text-black hover:bg-green-300"
+  >
+    Choose Photos
+  </label>
+
+  <input
+    id="listing-photo-upload"
+    type="file"
+    accept="image/*"
+    multiple
+    onChange={(e) => setNewPhotos(Array.from(e.target.files || []))}
+    className="sr-only"
+  />
+
+  <p className="mt-2 text-sm text-zinc-400">
+    Upload one or more clear photos of your item.
+  </p>
+
+  {newPhotos.length > 0 && (
+    <p className="mt-2 text-sm font-bold text-green-400">
+      {newPhotos.length} photo{newPhotos.length === 1 ? "" : "s"} selected.
+    </p>
+  )}
+</div>
   </div>
 
   <hr className="border-zinc-700" />
