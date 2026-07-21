@@ -33,7 +33,7 @@ export default function HeroSection({
         <div className="mt-8 flex flex-wrap gap-4">
           <a
             href="/submit"
-            className="rounded-xl bg-green-400 px-7 py-4 font-bold text-black"
+            className="cursor-pointer rounded-xl bg-green-400 px-7 py-4 font-bold text-black hover:bg-green-300"
           >
             Get My Item Reviewed
           </a>
