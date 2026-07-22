@@ -32,25 +32,38 @@ function stripHtml(html: string) {
 }
 
 function extractNewestReply(text: string) {
-  const cleaned = text.replace(/\r\n/g, "\n").trim();
+  const cleaned = text
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .trim();
 
-  const separators = [
-    /\nOn .+ wrote:\n/i,
-    /\n-{2,}\s*Original Message\s*-{2,}/i,
-    /\nFrom:\s.+\nSent:\s.+/i,
-  ];
+  const lines = cleaned.split("\n");
+  const replyLines: string[] = [];
 
-  let newest = cleaned;
+  for (const line of lines) {
+    const trimmed = line.trim();
 
-  for (const separator of separators) {
-    const parts = newest.split(separator);
-
-    if (parts.length > 1) {
-      newest = parts[0].trim();
+    // Gmail / common quoted-reply markers
+    if (
+      /^On .+wrote:$/i.test(trimmed) ||
+      /^On .+wrote:\s*>?/i.test(trimmed) ||
+      /^-{2,}\s*Original Message\s*-{2,}$/i.test(trimmed) ||
+      /^From:\s/i.test(trimmed) ||
+      /^Sent:\s/i.test(trimmed) ||
+      /^To:\s/i.test(trimmed) ||
+      /^Subject:\s/i.test(trimmed) ||
+      /^>/.test(trimmed)
+    ) {
+      break;
     }
+
+    replyLines.push(line);
   }
 
-  return newest.trim();
+  return replyLines
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 export async function POST(req: Request) {
