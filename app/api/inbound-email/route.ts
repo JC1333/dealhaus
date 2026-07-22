@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
+
+export const runtime = "nodejs";
 
 type ResendReceivedEvent = {
   type?: string;
@@ -53,12 +56,13 @@ function extractNewestReply(text: string) {
 export async function POST(req: Request) {
   try {
     const resendApiKey = process.env.RESEND_API_KEY;
+    const openaiApiKey = process.env.OPENAI_API_KEY;
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!resendApiKey) {
+    if (!resendApiKey || !openaiApiKey) {
       return NextResponse.json(
-        { error: "RESEND_API_KEY is missing." },
+        { error: "Resend or OpenAI API key is missing." },
         { status: 500 }
       );
     }
@@ -89,6 +93,8 @@ export async function POST(req: Request) {
     }
 
     const resend = new Resend(resendApiKey);
+    const openai = new OpenAI({ apiKey: openaiApiKey });
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: receivedEmail, error: receiveError } =
       await resend.emails.receiving.get(emailId);
@@ -126,8 +132,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-
     const { data: conversations, error: conversationError } =
       await supabase
         .from("buyer_conversations")
@@ -144,11 +148,6 @@ export async function POST(req: Request) {
     }
 
     if (!conversations || conversations.length === 0) {
-      console.log(
-        "Inbound buyer email received with no matching conversation:",
-        buyerEmail
-      );
-
       return NextResponse.json({
         success: true,
         unmatched: true,
@@ -192,10 +191,18 @@ export async function POST(req: Request) {
           .filter(Boolean)
           .map((title) => String(title).toLowerCase());
 
-        return possibleTitles.some((title) =>
-          subject.includes(title)
-        );
+        return possibleTitles.some((title) => subject.includes(title));
       }) || conversations[0];
+
+    const inventoryItem = inventoryById.get(
+      String(matchedConversation.inventory_id)
+    );
+
+    const itemTitle =
+      inventoryItem?.item_title ||
+      inventoryItem?.title ||
+      matchedConversation.inventory_title ||
+      "the item";
 
     const { data: existingMessage } = await supabase
       .from("buyer_conversation_messages")
@@ -205,22 +212,145 @@ export async function POST(req: Request) {
       .limit(1)
       .maybeSingle();
 
-    if (!existingMessage) {
-      const { error: messageError } = await supabase
-        .from("buyer_conversation_messages")
-        .insert({
-          buyer_conversation_id: matchedConversation.id,
-          sender:
-            matchedConversation.buyer_name || "Buyer",
-          message: buyerMessage,
-        });
+    if (existingMessage) {
+      return NextResponse.json({
+        success: true,
+        duplicate: true,
+      });
+    }
 
-      if (messageError) {
-        return NextResponse.json(
-          { error: messageError.message },
-          { status: 500 }
-        );
-      }
+    const { error: messageError } = await supabase
+      .from("buyer_conversation_messages")
+      .insert({
+        buyer_conversation_id: matchedConversation.id,
+        sender: matchedConversation.buyer_name || "Buyer",
+        message: buyerMessage,
+      });
+
+    if (messageError) {
+      return NextResponse.json(
+        { error: messageError.message },
+        { status: 500 }
+      );
+    }
+
+    const { data: history } = await supabase
+      .from("buyer_conversation_messages")
+      .select("sender,message,created_at")
+      .eq("buyer_conversation_id", matchedConversation.id)
+      .order("created_at", { ascending: true })
+      .limit(20);
+
+    const conversationHistory = (history || [])
+      .map((message: any) => `${message.sender}: ${message.message}`)
+      .join("\n");
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [
+        {
+          role: "system",
+          content: `
+You are the DealHaus Buyer Conversation Agent.
+
+DealHaus is an AI marketplace brokerage that connects buyers and sellers.
+
+Your job is to professionally respond to buyer inquiries using ONLY the information provided about the listing and conversation.
+
+Rules:
+- Be friendly, professional, concise, and helpful.
+- Never mention that you are AI.
+- Never invent listing details.
+- Never invent availability, condition, dimensions, location, delivery, pickup arrangements, seller information, or pricing.
+- Never promise that an item is still available unless the supplied data confirms it.
+- Never accept or reject an offer on your own.
+- If the buyer makes an offer, asks for a discount, negotiates price, or proposes a different price, tell them you will check on the offer and follow up.
+- If information needed to answer is unavailable, say you will confirm the detail rather than guessing.
+- Do not provide private seller information.
+- Do not request payment outside the approved DealHaus transaction process.
+- Keep most responses under 120 words.
+- Do not include an email signature. DealHaus adds the signature automatically.
+`,
+        },
+        {
+          role: "user",
+          content: `
+LISTING INFORMATION
+
+Title: ${itemTitle}
+Price: ${inventoryItem?.price ?? "Not provided"}
+Description: ${inventoryItem?.description ?? "Not provided"}
+Status: ${inventoryItem?.status ?? "Not provided"}
+Deal stage: ${inventoryItem?.deal_stage ?? "Not provided"}
+
+BUYER
+
+Name: ${matchedConversation.buyer_name || "Buyer"}
+
+RECENT CONVERSATION
+
+${conversationHistory || "No previous messages."}
+
+NEW BUYER MESSAGE
+
+${buyerMessage}
+
+Write the appropriate DealHaus response to the buyer.
+`,
+        },
+      ],
+      temperature: 0.3,
+    });
+
+    const aiReply =
+      completion.choices[0]?.message?.content?.trim();
+
+    if (!aiReply) {
+      return NextResponse.json(
+        { error: "AI did not generate a response." },
+        { status: 500 }
+      );
+    }
+
+    const emailMessage = `Hi ${matchedConversation.buyer_name || "there"},
+
+${aiReply}
+
+Best regards,
+The DealHaus Team
+AI Marketplace Brokerage
+Helping You Sell Smarter. Built on Integrity. Guided by Faith.
+
+support@dealhaus.us
+dealhaus.us`;
+
+    const { error: sendError } = await resend.emails.send({
+      from: "DealHaus Support <support@dealhaus.us>",
+      to: buyerEmail,
+      subject: `Re: ${itemTitle}`,
+      text: emailMessage,
+    });
+
+    if (sendError) {
+      return NextResponse.json(
+        { error: sendError.message || "AI reply email failed." },
+        { status: 500 }
+      );
+    }
+
+    const { error: aiMessageError } = await supabase
+      .from("buyer_conversation_messages")
+      .insert({
+        buyer_conversation_id: matchedConversation.id,
+        sender: "DealHaus",
+        message: aiReply,
+      });
+
+    if (aiMessageError) {
+      return NextResponse.json(
+        { error: aiMessageError.message },
+        { status: 500 }
+      );
     }
 
     const nextUnreadCount =
@@ -231,6 +361,7 @@ export async function POST(req: Request) {
       .update({
         last_message: buyerMessage,
         unread_count: nextUnreadCount,
+        conversation_stage: "buyer_contacted",
       })
       .eq("id", matchedConversation.id);
 
@@ -245,15 +376,17 @@ export async function POST(req: Request) {
       success: true,
       conversation_id: matchedConversation.id,
       buyer_email: buyerEmail,
-      message_saved: true,
+      buyer_message_saved: true,
+      ai_reply_sent: true,
+      ai_reply_saved: true,
     });
   } catch (error: unknown) {
     const message =
       error instanceof Error
         ? error.message
-        : "Inbound email processing failed.";
+        : "Inbound AI conversation processing failed.";
 
-    console.error("DealHaus inbound email error:", error);
+    console.error("DealHaus inbound AI conversation error:", error);
 
     return NextResponse.json(
       {
