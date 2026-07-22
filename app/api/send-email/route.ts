@@ -6,6 +6,7 @@ type SendEmailBody = {
   subject?: string;
   message?: string;
   html?: string;
+  from?: string;
 };
 
 export async function POST(req: Request) {
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
     const resend = new Resend(apiKey);
 
     const { data, error } = await resend.emails.send({
-      from: "DealHaus <invoices@dealhaus.us>",
+      from: body.from?.trim() || "DealHaus <invoices@dealhaus.us>",
       to,
       subject,
       text: message || "Your DealHaus commission invoice is attached below.",

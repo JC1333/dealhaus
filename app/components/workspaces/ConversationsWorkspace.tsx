@@ -215,40 +215,83 @@ setBuyerMessages(messagesData || [])
         />
 
         <button
-          onClick={async () => {
-            if (!buyerReply.trim()) return
+  onClick={async () => {
+    const reply = buyerReply.trim()
 
-            const { data, error } = await supabase
-              .from('buyer_conversation_messages')
-              .insert({
-                buyer_conversation_id: selectedBuyerConversation.id,
-                sender: 'DealHaus',
-                message: buyerReply,
-              })
-              .select()
-              .single()
+    if (!reply) return
 
-            if (error) {
-              alert(error.message)
-              return
-            }
+    const emailResponse = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    body: JSON.stringify({
+  from: 'DealHaus Support <support@dealhaus.us>',
+  to: selectedBuyerConversation.buyer_email,
+  subject: `DealHaus Update: ${selectedBuyerConversation.inventory_title}`,
+  message: `Hi ${selectedBuyerConversation.buyer_name},
 
-          if (data) {
-  setBuyerMessages((prev) => [...prev, data])
-  setBuyerReply('')
+Thank you for your interest in:
 
-  await supabase
-    .from('inventory')
-    .update({
-      deal_stage: 'negotiating',
+${selectedBuyerConversation.inventory_title}
+
+We have an update regarding your inquiry:
+
+${reply}
+
+If you have any additional questions or would like to move forward, simply reply to this email and the DealHaus team will be happy to assist you.
+
+Thank you for choosing DealHaus.
+
+Best regards,
+The DealHaus Team
+support@dealhaus.us
+dealhaus.us`,
+}),
     })
-    .eq('id', selectedBuyerConversation.inventory_id)
-}
-          }}
-          className="mt-4 w-full rounded-xl bg-green-500 px-4 py-3 font-semibold text-black hover:bg-green-400 transition"
-        >
-          Send Reply
-        </button>
+
+    const emailResult = await emailResponse.json()
+
+    if (!emailResponse.ok) {
+      alert(emailResult.error || 'The email could not be sent.')
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('buyer_conversation_messages')
+      .insert({
+        buyer_conversation_id: selectedBuyerConversation.id,
+        sender: 'DealHaus',
+        message: reply,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      alert(
+        `The email was sent, but the reply could not be saved: ${error.message}`
+      )
+      return
+    }
+
+    if (data) {
+      setBuyerMessages((prev) => [...prev, data])
+      setBuyerReply('')
+
+      await supabase
+        .from('inventory')
+        .update({
+          deal_stage: 'negotiating',
+        })
+        .eq('id', selectedBuyerConversation.inventory_id)
+
+      alert('Reply emailed to the buyer successfully.')
+    }
+  }}
+  className="mt-4 w-full rounded-xl bg-green-500 px-4 py-3 font-semibold text-black hover:bg-green-400 transition"
+>
+  Send Reply
+</button>
       </div>
     </div>
   </div>
