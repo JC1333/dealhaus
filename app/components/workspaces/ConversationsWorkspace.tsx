@@ -26,6 +26,7 @@ export default function ConversationsWorkspace() {
   async function loadBuyerConversations() {
   const { data, error } = await supabase
     .from('buyer_conversations')
+
     .select('*')
     .order('created_at', { ascending: false })
 
@@ -226,6 +227,7 @@ setBuyerMessages(messagesData || [])
 
 const itemTitle =
   inventoryItem?.item_title ||
+  inventoryItem?.title ||
   selectedBuyerConversation.inventory_title ||
   'your DealHaus listing'
 

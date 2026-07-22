@@ -154,7 +154,7 @@ if (!freshInventory || freshInventory.length === 0) {
 
     const newMatches = activeDeals.map((deal, index) => ({
       inventory_id: deal.id,
-      inventory_title: deal.title,
+      inventory_title: deal.item_title || deal.title,
       buyer_name: `Qualified Buyer ${index + 1}`,
       buyer_email: `buyer${index + 1}@dealhaus.local`,
       buyer_interest_score: Math.min(95, 82 + index * 3),
