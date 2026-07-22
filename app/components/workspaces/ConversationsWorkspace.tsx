@@ -13,6 +13,12 @@ export default function ConversationsWorkspace() {
   useEffect(() => {
   loadInventory()
   loadBuyerConversations()
+
+  const interval = setInterval(() => {
+    loadBuyerConversations()
+  }, 10000)
+
+  return () => clearInterval(interval)
 }, [])
 
   async function loadInventory() {
