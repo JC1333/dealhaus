@@ -61,9 +61,10 @@ function extractNewestReply(text: string) {
   }
 
   return replyLines
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  .join("\n")
+  .replace(/\s+On\s[\s\S]+?wrote:\s*[\s\S]*$/i, "")
+  .replace(/\n{3,}/g, "\n\n")
+  .trim();
 }
 
 export async function POST(req: Request) {
