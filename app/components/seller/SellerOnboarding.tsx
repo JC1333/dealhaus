@@ -105,7 +105,7 @@ export default function SellerOnboarding({
 
         <span className="text-zinc-300">
           I agree that DealHaus may market this item to buyers and collect a{" "}
-          <strong className="text-white">15% commission</strong> only after a
+          <strong className="text-white">10% commission</strong> only after a
           successful sale.
         </span>
       </label>
