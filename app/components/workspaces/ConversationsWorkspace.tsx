@@ -220,6 +220,15 @@ setBuyerMessages(messagesData || [])
 
     if (!reply) return
 
+    const inventoryItem = inventory.find(
+  (item) => String(item.id) === String(selectedBuyerConversation.inventory_id)
+)
+
+const itemTitle =
+  inventoryItem?.item_title ||
+  selectedBuyerConversation.inventory_title ||
+  'your DealHaus listing'
+
     const emailResponse = await fetch('/api/send-email', {
       method: 'POST',
       headers: {
@@ -228,23 +237,24 @@ setBuyerMessages(messagesData || [])
     body: JSON.stringify({
   from: 'DealHaus Support <support@dealhaus.us>',
   to: selectedBuyerConversation.buyer_email,
-  subject: `DealHaus Update: ${selectedBuyerConversation.inventory_title}`,
+  subject: `DealHaus Update: ${itemTitle}`,
   message: `Hi ${selectedBuyerConversation.buyer_name},
 
-Thank you for your interest in:
-
-${selectedBuyerConversation.inventory_title}
+Thank you for your interest in ${itemTitle}.
 
 We have an update regarding your inquiry:
 
 ${reply}
 
-If you have any additional questions or would like to move forward, simply reply to this email and the DealHaus team will be happy to assist you.
+If you have any questions or would like to move forward with this item, simply reply to this email and the DealHaus team will assist you with availability, pricing, and next steps.
 
 Thank you for choosing DealHaus.
 
 Best regards,
 The DealHaus Team
+AI Marketplace Brokerage
+Helping You Sell Smarter. Built on Integrity. Guided by Faith.
+
 support@dealhaus.us
 dealhaus.us`,
 }),
