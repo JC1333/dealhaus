@@ -348,21 +348,69 @@ Return this structure:
      * accepts URLs already verified before the AI call.
      */
     const validLeads = scoredLeads
-      .filter((lead) => {
-        if (
-          !lead.marketplace_listing_url ||
-          !verifiedResults.has(
-            lead.marketplace_listing_url
-          )
-        ) {
-          return false;
-        }
+  .filter((lead) => {
+    if (
+      !lead.marketplace_listing_url ||
+      !verifiedResults.has(
+        lead.marketplace_listing_url
+      )
+    ) {
+      return false;
+    }
 
-        return isIndividualOfferUpListing(
-          lead.marketplace_listing_url
-        );
-      })
-      .slice(0, 8);
+    if (
+      !isIndividualOfferUpListing(
+        lead.marketplace_listing_url
+      )
+    ) {
+      return false;
+    }
+
+    const score = Number(
+      lead.acquisition_score || 0
+    );
+
+    if (score < 60) {
+      return false;
+    }
+
+    const sourceResult = verifiedResults.get(
+      lead.marketplace_listing_url
+    );
+
+    if (!sourceResult) {
+      return false;
+    }
+
+    const text = `
+      ${sourceResult.title}
+      ${sourceResult.description}
+      ${lead.acquisition_reason || ""}
+    `.toLowerCase();
+
+    const rejectionTerms = [
+      "sold",
+      "no longer available",
+      "delivery service",
+      "financing available",
+      "easy financing",
+      "furniture outlet",
+      "warehouse",
+      "showroom",
+      "dealer",
+    ];
+
+    if (
+      rejectionTerms.some((term) =>
+        text.includes(term)
+      )
+    ) {
+      return false;
+    }
+
+    return true;
+  })
+  .slice(0, 8);
 
     if (validLeads.length === 0) {
       return NextResponse.json({
