@@ -888,12 +888,14 @@ export async function POST(
       error: runInsertError,
     } = await supabase
       .from("acquisition_runs")
-      .insert({
-        search_city: city,
-        search_radius: radius,
-        leads_generated: 0,
-        status: "running",
-      })
+.insert({
+  marketplace_source: "Facebook Marketplace",
+  search_city: city,
+  search_radius: String(radius),
+  item_category: requestedCategory,
+  lead_count: 0,
+  run_status: "running",
+})
       .select()
       .single();
 
@@ -957,9 +959,9 @@ export async function POST(
       await supabase
         .from("acquisition_runs")
         .update({
-          leads_generated: 0,
-          status: "completed",
-        })
+  lead_count: 0,
+  run_status: "completed",
+})
         .eq(
           "id",
           acquisitionRunId
@@ -1035,9 +1037,9 @@ export async function POST(
       await supabase
         .from("acquisition_runs")
         .update({
-          leads_generated: 0,
-          status: "completed",
-        })
+  lead_count: 0,
+  run_status: "completed",
+})
         .eq(
           "id",
           acquisitionRunId
@@ -1291,9 +1293,9 @@ export async function POST(
       await supabase
         .from("acquisition_runs")
         .update({
-          leads_generated: 0,
-          status: "completed",
-        })
+  lead_count: 0,
+  run_status: "completed",
+})
         .eq(
           "id",
           acquisitionRunId
@@ -1335,10 +1337,10 @@ export async function POST(
     await supabase
       .from("acquisition_runs")
       .update({
-        leads_generated:
-          inserted?.length || 0,
-        status: "completed",
-      })
+  lead_count:
+    inserted?.length || 0,
+  run_status: "completed",
+})
       .eq(
         "id",
         acquisitionRunId
@@ -1378,8 +1380,8 @@ export async function POST(
       await supabase
         .from("acquisition_runs")
         .update({
-          status: "failed",
-        })
+  run_status: "failed",
+})
         .eq(
           "id",
           acquisitionRunId
