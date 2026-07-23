@@ -78,12 +78,17 @@ export default function AcquisitionRunPanel() {
                 <div>
                   <p className="font-bold">{lead.item_title}</p>
                   <p className="text-sm text-zinc-400">
-                    {lead.seller_name} · {lead.seller_city}, {lead.seller_state} · {lead.platform}
-                  </p>
+  {lead.seller_name || "Seller not identified"} · {lead.seller_city}, {lead.seller_state} · {lead.platform}
+</p>
                 </div>
                 <div className="text-right">
                   <p className="font-bold">Score: {lead.acquisition_score}</p>
-                  <p className="text-sm text-green-400">Est. Profit: ${lead.estimated_profit}</p>
+                 <p className="text-sm text-green-400">
+  Price Upside: ${Number(lead.estimated_profit || 0).toLocaleString()}
+</p>
+<p className="text-sm text-cyan-400">
+  Est. DealHaus Commission: ${Number(lead.estimated_commission || 0).toLocaleString()}
+</p> 
                 </div>
               </div>
               <p className="text-sm text-zinc-300 mt-3">{lead.acquisition_reason}</p>

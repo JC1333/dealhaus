@@ -1251,13 +1251,11 @@ export async function POST(
             ) || null,
 
           lead_priority:
-            ["low", "medium", "high"].includes(
-              lead.lead_priority
-            )
-              ? lead.lead_priority
-              : acquisitionScore >= 80
-                ? "high"
-                : "medium",
+  acquisitionScore >= 80
+    ? "high"
+    : acquisitionScore >= 70
+      ? "medium"
+      : "low",
 
           approval_status:
             "not_approved",
