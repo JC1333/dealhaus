@@ -31,34 +31,75 @@ const AI_BATCH_SIZE = 15;
  */
 const DEALHAUS_SEARCHES: Record<string, string[]> = {
   furniture: [
-    "furniture",
     "sectional couch",
     "dining set",
+    "bedroom set",
+    "dresser",
+    "patio furniture",
   ],
+
   electronics: [
-    "electronics",
-    "tv",
+    "smart tv",
     "gaming console",
+    "gaming pc",
+    "laptop",
+    "home theater",
   ],
+
   "home goods": [
-    "home goods",
-    "mirror",
+    "area rug",
+    "large mirror",
+    "lighting",
+    "storage cabinet",
     "home decor",
   ],
+
   appliances: [
-    "appliances",
     "refrigerator",
     "washer dryer",
+    "freezer",
+    "range oven",
+    "dishwasher",
   ],
+
   outdoor: [
     "patio furniture",
     "grill",
-    "outdoor equipment",
+    "fire pit",
+    "outdoor storage",
+    "lawn equipment",
   ],
+
+  decor: [
+    "wall art",
+    "large mirror",
+    "floor lamp",
+    "home decor",
+    "accent table",
+  ],
+
   tools: [
     "power tools",
     "tool set",
     "generator",
+    "air compressor",
+    "pressure washer",
+  ],
+
+  collectibles: [
+    "vintage furniture",
+    "collectibles",
+    "vintage decor",
+    "antique furniture",
+    "memorabilia",
+  ],
+
+  "local deals": [
+    "moving sale",
+    "estate sale",
+    "garage sale furniture",
+    "must sell",
+    "moving furniture",
   ],
 };
 
@@ -1251,11 +1292,13 @@ export async function POST(
             ) || null,
 
           lead_priority:
-  acquisitionScore >= 80
-    ? "high"
-    : acquisitionScore >= 70
-      ? "medium"
-      : "low",
+            ["low", "medium", "high"].includes(
+              lead.lead_priority
+            )
+              ? lead.lead_priority
+              : acquisitionScore >= 80
+                ? "high"
+                : "medium",
 
           approval_status:
             "not_approved",
@@ -1375,16 +1418,16 @@ export async function POST(
     );
 
     if (acquisitionRunId) {
-      await supabase
-        .from("acquisition_runs")
-        .update({
-  run_status: "failed",
-})
-        .eq(
-          "id",
-          acquisitionRunId
-        );
-    }
+  await supabase
+    .from("acquisition_runs")
+    .update({
+      run_status: "failed",
+    })
+    .eq(
+      "id",
+      acquisitionRunId
+    );
+}
 
     return NextResponse.json(
       {

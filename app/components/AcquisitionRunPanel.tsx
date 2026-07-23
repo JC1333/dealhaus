@@ -3,8 +3,8 @@
 import { useState } from "react";
 
 export default function AcquisitionRunPanel() {
-  const [city, setCity] = useState("Winchester");
-  const [state, setState] = useState("VA");
+  const [city, setCity] = useState("Las Vegas");
+  const [state, setState] = useState("NV");
   const [radius, setRadius] = useState("25");
   const [category, setCategory] = useState("furniture");
   const [runType, setRunType] = useState("daily");
