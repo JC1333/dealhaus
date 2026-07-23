@@ -891,8 +891,6 @@ export async function POST(
       .insert({
         search_city: city,
         search_radius: radius,
-        acquisition_run_type:
-          runType,
         leads_generated: 0,
         status: "running",
       })
