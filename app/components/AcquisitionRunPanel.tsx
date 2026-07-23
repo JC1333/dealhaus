@@ -51,7 +51,22 @@ export default function AcquisitionRunPanel() {
         <input className="bg-black border border-zinc-800 rounded-xl p-3" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" />
         <input className="bg-black border border-zinc-800 rounded-xl p-3" value={state} onChange={(e) => setState(e.target.value)} placeholder="State" />
         <input className="bg-black border border-zinc-800 rounded-xl p-3" value={radius} onChange={(e) => setRadius(e.target.value)} placeholder="Radius" />
-        <input className="bg-black border border-zinc-800 rounded-xl p-3" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" />
+        <select
+  className="bg-black border border-zinc-800 rounded-xl p-3"
+  value={category}
+  onChange={(e) => setCategory(e.target.value)}
+>
+  <option value="all">All Categories</option>
+  <option value="furniture">Furniture</option>
+  <option value="electronics">Electronics</option>
+  <option value="home goods">Home Goods</option>
+  <option value="appliances">Appliances</option>
+  <option value="outdoor">Outdoor</option>
+  <option value="decor">Décor</option>
+  <option value="tools">Tools</option>
+  <option value="collectibles">Collectibles</option>
+  <option value="local deals">Local Deals</option>
+</select>
         <select className="bg-black border border-zinc-800 rounded-xl p-3" value={runType} onChange={(e) => setRunType(e.target.value)}>
           <option value="daily">Daily Run</option>
           <option value="manual">Manual Run</option>
