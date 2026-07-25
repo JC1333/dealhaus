@@ -2,7 +2,7 @@ const { spawn } = require("child_process");
 const path = require("path");
 
 const CHECK_INTERVAL_MS = 60 * 1000;
-
+const RUN_ONCE = process.argv.includes("--once");
 let running = false;
 
 async function runBuyerAgent() {
@@ -44,21 +44,34 @@ async function runBuyerAgent() {
   });
 
   child.on("exit", (code) => {
-    console.log(
-      `Buyer Agent finished with exit code ${code}.`
-    );
+  console.log(
+    `Buyer Agent finished with exit code ${code}.`
+  );
 
-    running = false;
-  });
+  running = false;
+
+  if (RUN_ONCE) {
+    console.log("Buyer Agent single sweep complete.");
+    process.exit(code || 0);
+  }
+});
 }
 
 console.log("\nDEALHAUS FACEBOOK BUYER AGENT RUNNER");
 console.log("------------------------------------");
-console.log("Checking Marketplace once every 60 seconds.");
+console.log(
+  RUN_ONCE
+    ? "Single buyer sweep mode."
+    : "Checking Marketplace once every 60 seconds."
+);
 console.log("Press Ctrl+C to stop.");
 
-runBuyerAgent();
-
-setInterval(() => {
+if (RUN_ONCE) {
   runBuyerAgent();
-}, CHECK_INTERVAL_MS);
+} else {
+  runBuyerAgent();
+
+  setInterval(() => {
+    runBuyerAgent();
+  }, CHECK_INTERVAL_MS);
+}

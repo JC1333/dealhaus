@@ -114,6 +114,12 @@ DealHaus`;
 }
 async function sendOfferToSeller(negotiationTaskId) {
   const task = await getNegotiationTask(negotiationTaskId);
+  if (task.negotiation_status !== "buyer_offer_received") {
+    console.log(
+      `NEGOTIATION SKIPPED: status is "${task.negotiation_status}", not "buyer_offer_received".`
+    );
+    return;
+  }
 
   const { inventory, sellerLead } =
     await getSellerForInventory(task.inventory_item_id);

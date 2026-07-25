@@ -1,7 +1,9 @@
 const { chromium } = require("playwright");
 const OpenAI = require("openai");
+const DRY_RUN = process.argv.includes("--dry-run");
 const { createClient } = require("@supabase/supabase-js");
 const path = require("path");
+const { spawnSync } = require("child_process");
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -15,6 +17,9 @@ const openai = new OpenAI({
   console.log("\nDEALHAUS FACEBOOK BUYER AGENT");
   console.log("----------------------------");
   console.log("INBOUND BUYER DETECTION MODE");
+if (DRY_RUN) {
+  console.log("DRY RUN MODE — NO FACEBOOK MESSAGES WILL BE SENT");
+}
 
   const { data: publishedTasks, error: publishError } = await supabase
     .from("marketplace_publish_tasks")
@@ -83,15 +88,40 @@ const openai = new OpenAI({
   await page.waitForTimeout(4000);
 
   const conversationHeadings = page.locator(
-    '[aria-label^="Conversation titled "]'
-  );
+  'a[role="link"][aria-label^="Group chat: "]'
+);
 
-  const conversationCount =
-    await conversationHeadings.count();
+let conversationCount = 0;
+
+for (let attempt = 1; attempt <= 30; attempt++) {
+  conversationCount = await conversationHeadings.count();
+
+  if (conversationCount > 0) {
+    break;
+  }
 
   console.log(
-    `Marketplace conversation cards found: ${conversationCount}`
+    `WAITING FOR MARKETPLACE CONVERSATIONS ${attempt}/30`
   );
+
+  // Facebook sometimes renders the Marketplace sidebar late.
+  // Re-click Marketplace periodically to force the list to refresh.
+  if (attempt % 5 === 0) {
+    const marketplace = page
+      .getByText("Marketplace", { exact: true })
+      .first();
+
+    if (await marketplace.isVisible().catch(() => false)) {
+      await marketplace.click().catch(() => {});
+    }
+  }
+
+  await page.waitForTimeout(2000);
+}
+
+console.log(
+  `Marketplace conversation cards found: ${conversationCount}`
+);
 
   let buyerThreadsFound = 0;
 
@@ -103,8 +133,8 @@ const openai = new OpenAI({
     if (!aria) continue;
 
     const conversationTitle = aria
-      .replace(/^Conversation titled\s+/i, "")
-      .trim();
+  .replace(/^Group chat:\s+/i, "")
+  .trim();
 
     const publishedTask = publishedTasks.find((task) => {
       const itemTitle = String(task.item_title || "")
@@ -131,10 +161,31 @@ const openai = new OpenAI({
       force: true,
     });
 
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(1500);
 
-    const threadBody =
-      await page.locator("body").innerText();
+let threadBody = "";
+
+for (let attempt = 1; attempt <= 10; attempt++) {
+  threadBody = await page.locator("body").innerText();
+
+  const threadLoaded =
+    threadBody.includes(conversationTitle) &&
+    (
+      threadBody.includes("View buyer profile") ||
+      threadBody.includes("View buyer") ||
+      threadBody.includes("started this chat")
+    );
+
+  if (threadLoaded) {
+    break;
+  }
+
+  console.log(
+    `WAITING FOR BUYER THREAD TO LOAD ${attempt}/10`
+  );
+
+  await page.waitForTimeout(1000);
+}
 
     // Seller-side conversations started by DealHaus must be ignored.
     if (threadBody.includes("You started this chat")) {
@@ -355,7 +406,7 @@ const openai = new OpenAI({
     const { data: negotiationResults, error: negotiationResultError } =
       await supabase
         .from("negotiation_tasks")
-        .select("*")
+        .select("id,negotiation_status,current_offer")
         .eq("buyer_outreach_task_id", buyerOutreachTask.id)
         .order("created_at", { ascending: false })
         .limit(1);
@@ -366,6 +417,37 @@ const openai = new OpenAI({
 
     const negotiationResult =
       negotiationResults?.[0] || null;
+const conversationAlreadyAccepted =
+  String(conversation?.conversation_stage || "").toLowerCase() ===
+  "offer_accepted";
+
+const negotiationAlreadyAccepted =
+  String(negotiationResult?.negotiation_status || "").toLowerCase() ===
+  "offer_accepted";
+
+const shouldSkipAcceptedRelay =
+  conversationAlreadyAccepted && negotiationAlreadyAccepted;
+if (
+  negotiationResult &&
+  !shouldSkipAcceptedRelay &&
+  [
+    "offer_accepted",
+    "offer_rejected",
+    "seller_counter_received",
+  ].includes(negotiationResult.negotiation_status)
+) {
+  const negotiationAmount =
+    Number(negotiationResult.current_offer);
+
+  if (
+    !Number.isFinite(negotiationAmount) ||
+    negotiationAmount <= 0
+  ) {
+    throw new Error(
+      `Negotiation ${negotiationResult.id} has an invalid current_offer and cannot be relayed to Facebook`
+    );
+  }
+}
 
     if (
       negotiationResult &&
@@ -531,30 +613,29 @@ const openai = new OpenAI({
     if (duplicateError) throw duplicateError;
 
     if (duplicateMessage) {
-      console.log(
-        "Duplicate buyer message blocked."
-      );
-      continue;
-    }
+  console.log(
+    "Buyer message already exists in DealHaus. Continuing safely in case a previous processing attempt failed."
+  );
+} else {
+  const { error: messageInsertError } =
+    await supabase
+      .from("buyer_conversation_messages")
+      .insert({
+        buyer_conversation_id:
+          conversation.id,
+        sender: buyerName,
+        message:
+          newestBuyerMessage.message,
+      });
 
-    const { error: messageInsertError } =
-      await supabase
-        .from("buyer_conversation_messages")
-        .insert({
-          buyer_conversation_id:
-            conversation.id,
-          sender: buyerName,
-          message:
-            newestBuyerMessage.message,
-        });
+  if (messageInsertError) {
+    throw messageInsertError;
+  }
 
-    if (messageInsertError) {
-      throw messageInsertError;
-    }
-
-    console.log(
-      "Buyer message saved to DealHaus."
-    );
+  console.log(
+    "Buyer message saved to DealHaus."
+  );
+}
 const { data: inventoryItem, error: inventoryError } = await supabase
   .from("inventory")
   .select(
@@ -588,6 +669,19 @@ const completion = await openai.chat.completions.create({
 You are the DealHaus Facebook Buyer Conversation Agent.
 
 DealHaus is a local AI-powered marketplace brokerage in Las Vegas, Nevada.
+Return ONLY valid JSON in exactly this structure:
+
+{
+  "intent": "availability|question|offer|pickup|delivery|interested|not_interested|unclear",
+  "sentiment": "positive|neutral|negative",
+  "needs_human_review": false,
+  "ready_for_negotiation": false,
+  "response": "message to send to the buyer"
+}
+
+Every field is REQUIRED.
+Do not omit any field.
+Do not include markdown, explanation, or text outside the JSON object.
 
 IMPORTANT:
 - The "intent" value MUST be exactly one of these strings and nothing else:
@@ -658,6 +752,70 @@ const cleaned = raw
 const decision = JSON.parse(cleaned);
 const normalizedBuyerMessage =
   newestBuyerMessage.message.trim().toLowerCase();
+let acceptedSellerCounter = false;
+let acceptedCounterAmount = null;
+
+if (
+  negotiationResult?.negotiation_status === "seller_counter_received"
+) {
+  const sellerCounterAmount =
+    Number(negotiationResult.current_offer || 0);
+
+  const buyerAmountMatch =
+    normalizedBuyerMessage.match(
+      /\$\s*(\d+(?:\.\d{1,2})?)/
+    );
+
+  const buyerAmount = buyerAmountMatch
+    ? Number(buyerAmountMatch[1])
+    : null;
+
+  const acceptanceLanguage =
+    /\b(i'?ll take it|i will take it|i accept|accept|deal|sounds good|works for me|i'?ll do it|i will do it)\b/i.test(
+      normalizedBuyerMessage
+    );
+
+  const amountMatches =
+    buyerAmount === null ||
+    buyerAmount === sellerCounterAmount;
+
+  if (
+    acceptanceLanguage &&
+    amountMatches &&
+    sellerCounterAmount > 0
+  ) {
+    acceptedSellerCounter = true;
+    acceptedCounterAmount = sellerCounterAmount;
+
+    decision.intent = "interested";
+    decision.sentiment = "positive";
+    decision.needs_human_review = false;
+    decision.ready_for_negotiation = false;
+    decision.response =
+      `Great — the $${sellerCounterAmount.toFixed(
+        2
+      )} price is agreed. I'll help coordinate the next steps.`;
+  }
+}
+const isSimpleAvailabilityQuestion =
+  /^(hi[,!]?\s*)?(is this|is it|this still|is this still)\s+(available|for sale)\??$/i.test(
+    newestBuyerMessage.message.trim()
+  ) ||
+  /^(hi[,!]?\s*)?is this available\??$/i.test(
+    newestBuyerMessage.message.trim()
+  );
+
+if (
+  isSimpleAvailabilityQuestion &&
+  String(inventoryItem?.status || "").toLowerCase() === "active"
+) {
+  decision.intent = "availability";
+  decision.sentiment = "neutral";
+  decision.needs_human_review = false;
+  decision.ready_for_negotiation = false;
+  decision.response =
+    `Hi ${buyerName}! Yes, this is currently available. Let me know if you have any questions about the listing.`;
+}
 
 const containsDollarOffer =
   /\$\s*\d+(?:\.\d{1,2})?/.test(normalizedBuyerMessage);
@@ -667,7 +825,11 @@ const containsOfferLanguage =
     normalizedBuyerMessage
   );
 
-if (containsDollarOffer && containsOfferLanguage) {
+if (
+  !acceptedSellerCounter &&
+  containsDollarOffer &&
+  containsOfferLanguage
+) {
   decision.intent = "offer";
   decision.sentiment =
     decision.sentiment || "positive";
@@ -778,7 +940,12 @@ if (!(await composer.isVisible().catch(() => false))) {
 }
 
 await composer.click();
-
+if (DRY_RUN) {
+  console.log("\nDRY RUN — FACEBOOK RESPONSE NOT SENT");
+  console.log("WOULD SEND:");
+  console.log(decision.response);
+  continue;
+}
 await page.keyboard.insertText(decision.response);
 
 console.log("\nSENDING BUYER RESPONSE:");
@@ -800,6 +967,44 @@ if (!currentThreadBody.includes(decision.response)) {
 console.log(
   "VERIFIED: EXACT BUYER RESPONSE APPEARS IN FACEBOOK THREAD"
 );
+if (
+  acceptedSellerCounter &&
+  negotiationResult &&
+  acceptedCounterAmount
+) {
+  const { error: acceptedNegotiationError } =
+    await supabase
+      .from("negotiation_tasks")
+      .update({
+        current_offer: acceptedCounterAmount,
+        negotiation_status: "offer_accepted",
+      })
+      .eq("id", negotiationResult.id);
+
+  if (acceptedNegotiationError) {
+    throw acceptedNegotiationError;
+  }
+
+  const { error: acceptedInventoryError } =
+    await supabase
+      .from("inventory")
+      .update({
+        ready_to_close: true,
+        deal_stage: "ready_to_close",
+      })
+      .eq("id", publishedTask.inventory_item_id);
+
+  if (acceptedInventoryError) {
+    throw acceptedInventoryError;
+  }
+
+  console.log(
+    `NEGOTIATION ACCEPTED AT $${acceptedCounterAmount.toFixed(2)}`
+  );
+  console.log(
+    "INVENTORY UPDATED: READY_TO_CLOSE"
+  );
+}
 
 // Only after Facebook verification, save DealHaus's outbound message.
 const { error: aiMessageInsertError } = await supabase
@@ -841,53 +1046,112 @@ if (decision.ready_for_negotiation === true) {
   if (negotiationLookupError) {
     throw negotiationLookupError;
   }
-
+     let negotiationTaskId = null;
   if (existingNegotiations?.length) {
-    const { error: negotiationUpdateError } =
-      await supabase
-        .from("negotiation_tasks")
-        .update({
-  buyer_outreach_task_id: buyerOutreachTask.id,
-  current_offer: actualOffer,
-  negotiation_status: "buyer_offer_received",
-})
-        .eq("id", existingNegotiations[0].id);
+  negotiationTaskId = existingNegotiations[0].id;
+const existingNegotiationStatus =
+  existingNegotiations[0].negotiation_status;
 
-    if (negotiationUpdateError) {
-      throw negotiationUpdateError;
-    }
+if (existingNegotiationStatus === "offer_accepted") {
+  console.log(
+    `NEGOTIATION ALREADY ACCEPTED — NOT REOPENING ${negotiationTaskId}`
+  );
+  negotiationTaskId = null;
+} else {
+  const { error: negotiationUpdateError } =
+    await supabase
+      .from("negotiation_tasks")
+      .update({
+        buyer_outreach_task_id: buyerOutreachTask.id,
+        current_offer: actualOffer,
+        negotiation_status: "buyer_offer_received",
+      })
+      .eq("id", negotiationTaskId);
 
+  if (negotiationUpdateError) {
+    throw negotiationUpdateError;
+  }
+
+  console.log(
+  `NEGOTIATION UPDATED: BUYER OFFER $${actualOffer}`
+);
+}
+} else {
+  const {
+    data: insertedNegotiation,
+    error: negotiationInsertError,
+  } = await supabase
+    .from("negotiation_tasks")
+    .insert({
+      buyer_outreach_task_id: buyerOutreachTask.id,
+      inventory_item_id: publishedTask.inventory_item_id,
+      item_title:
+        inventoryItem?.title || publishedTask.item_title,
+      buyer_name: buyerName,
+      listing_price: Number(
+        publishedTask.listing_price || 0
+      ),
+      current_offer: actualOffer,
+      negotiation_status: "buyer_offer_received",
+    })
+    .select("id")
+    .single();
+
+  if (negotiationInsertError) {
+    throw negotiationInsertError;
+  }
+
+  negotiationTaskId = insertedNegotiation.id;
+
+  console.log(
+    `NEGOTIATION CREATED: BUYER OFFER $${actualOffer}`
+  );
+}
+
+if (negotiationTaskId) {
+  if (DRY_RUN) {
     console.log(
-      `NEGOTIATION UPDATED: BUYER OFFER $${actualOffer}`
+      `DRY RUN — WOULD AUTOMATICALLY START NEGOTIATION AGENT: ${negotiationTaskId}`
     );
   } else {
-    const { error: negotiationInsertError } =
-      await supabase
-        .from("negotiation_tasks")
-        .insert({
-          buyer_outreach_task_id: buyerOutreachTask.id,
-          inventory_item_id: publishedTask.inventory_item_id,
-          item_title:
-            inventoryItem?.title || publishedTask.item_title,
-          buyer_name: buyerName,
-          listing_price: Number(
-  publishedTask.listing_price || 0
-),
-          current_offer: actualOffer,
-          negotiation_status: "buyer_offer_received",
-        });
+    console.log(
+      `AUTOMATICALLY STARTING NEGOTIATION AGENT: ${negotiationTaskId}`
+    );
 
-    if (negotiationInsertError) {
-      throw negotiationInsertError;
+    const negotiationAgentPath = path.join(
+      process.cwd(),
+      "scripts",
+      "facebook",
+      "negotiation-agent.cjs"
+    );
+
+    const negotiationResult = spawnSync(
+      process.execPath,
+      [
+        "--env-file=.env.local",
+        negotiationAgentPath,
+        negotiationTaskId,
+      ],
+      {
+        cwd: process.cwd(),
+        stdio: "inherit",
+      }
+    );
+
+    if (negotiationResult.status !== 0) {
+      throw new Error(
+        `Negotiation Agent failed with exit code ${negotiationResult.status}`
+      );
     }
 
-    console.log(
-      `NEGOTIATION CREATED: BUYER OFFER $${actualOffer}`
-    );
+    console.log("AUTOMATIC NEGOTIATION HANDOFF COMPLETE");
   }
 }
+}
 const nextStage =
-  decision.ready_for_negotiation === true
+  acceptedSellerCounter === true
+    ? "offer_accepted"
+    : decision.ready_for_negotiation === true
     ? "ready_for_negotiation"
     : "buyer_contacted";
 
@@ -913,7 +1177,7 @@ console.log(
     "Verified buyer-side threads found:",
     buyerThreadsFound
   );
-  console.log("No Facebook replies were sent.");
+  console.log("Buyer Agent run finished.");
 
   await context.close();
 })().catch((error) => {
