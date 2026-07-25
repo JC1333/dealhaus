@@ -138,7 +138,231 @@ export async function POST(req: Request) {
       (receivedEmail.html ? stripHtml(receivedEmail.html) : "");
 
     const buyerMessage = extractNewestReply(rawMessage);
+    // Seller negotiation replies are routed before normal buyer-email handling.
+    const negotiationSubject =
+      receivedEmail.subject || event.data?.subject || "";
 
+    const negotiationMatch = negotiationSubject.match(
+      /DealHaus Buyer Offer \[([0-9a-f-]{36})\]/i
+    );
+
+    if (negotiationMatch) {
+      if (!buyerMessage) {
+        return NextResponse.json(
+          { error: "Seller negotiation reply contained no readable message." },
+          { status: 400 }
+        );
+      }
+
+      const negotiationTaskId = negotiationMatch[1];
+
+      const { data: negotiationTask, error: negotiationError } =
+        await supabase
+          .from("negotiation_tasks")
+          .select("*")
+          .eq("id", negotiationTaskId)
+          .single();
+
+      if (negotiationError || !negotiationTask) {
+        return NextResponse.json(
+          {
+            error:
+              negotiationError?.message ||
+              "Negotiation task could not be found.",
+          },
+          { status: 404 }
+        );
+      }
+
+      const { data: inventoryItem, error: inventoryError } =
+        await supabase
+          .from("inventory")
+          .select(
+            "id,title,seller_email,ready_to_close,deal_stage"
+          )
+          .eq("id", negotiationTask.inventory_item_id)
+          .single();
+
+      if (inventoryError || !inventoryItem) {
+        return NextResponse.json(
+          {
+            error:
+              inventoryError?.message ||
+              "Negotiation inventory item could not be found.",
+          },
+          { status: 404 }
+        );
+      }
+
+      // Verify the email really came from the seller tied to this inventory.
+      const approvedSellerEmails = new Set<string>();
+
+      if (inventoryItem.seller_email) {
+        approvedSellerEmails.add(
+          String(inventoryItem.seller_email).trim().toLowerCase()
+        );
+      }
+
+      const { data: relistTasks } = await supabase
+        .from("ai_relist_tasks")
+        .select("seller_lead_id,listing_prep_task_id")
+        .eq("inventory_item_id", negotiationTask.inventory_item_id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      const relistTask = relistTasks?.[0];
+      let sellerLeadId = relistTask?.seller_lead_id || null;
+
+      if (!sellerLeadId && relistTask?.listing_prep_task_id) {
+        const { data: prepTask } = await supabase
+          .from("listing_prep_tasks")
+          .select("seller_lead_id")
+          .eq("id", relistTask.listing_prep_task_id)
+          .single();
+
+        sellerLeadId = prepTask?.seller_lead_id || null;
+      }
+
+      if (sellerLeadId) {
+        const { data: sellerLead } = await supabase
+          .from("seller_leads")
+          .select(
+            "seller_email,approval_status,agreement_accepted"
+          )
+          .eq("id", sellerLeadId)
+          .single();
+
+        if (
+          sellerLead?.approval_status === "approved" &&
+          sellerLead?.agreement_accepted === true &&
+          sellerLead?.seller_email
+        ) {
+          approvedSellerEmails.add(
+            String(sellerLead.seller_email).trim().toLowerCase()
+          );
+        }
+      }
+
+      if (!approvedSellerEmails.has(buyerEmail)) {
+        return NextResponse.json(
+          {
+            error:
+              "Seller negotiation reply sender does not match the approved seller.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const sellerReply = buyerMessage.trim();
+
+      const counterMatch = sellerReply.match(
+        /^COUNTER\s*:?\s*\$?\s*(\d+(?:\.\d{1,2})?)\b/i
+      );
+
+      if (/^ACCEPT\b/i.test(sellerReply)) {
+        const { error: taskUpdateError } = await supabase
+          .from("negotiation_tasks")
+          .update({
+            negotiation_status: "offer_accepted",
+          })
+          .eq("id", negotiationTask.id);
+
+        if (taskUpdateError) {
+          return NextResponse.json(
+            { error: taskUpdateError.message },
+            { status: 500 }
+          );
+        }
+
+        const { error: closeError } = await supabase
+          .from("inventory")
+          .update({
+            ready_to_close: true,
+            deal_stage: "ready_to_close",
+          })
+          .eq("id", negotiationTask.inventory_item_id);
+
+        if (closeError) {
+          return NextResponse.json(
+            { error: closeError.message },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          negotiation_reply: "accepted",
+          negotiation_task_id: negotiationTask.id,
+          buyer_offer: negotiationTask.current_offer,
+        });
+      }
+
+      if (/^REJECT\b/i.test(sellerReply)) {
+        const { error: rejectError } = await supabase
+          .from("negotiation_tasks")
+          .update({
+            negotiation_status: "offer_rejected",
+          })
+          .eq("id", negotiationTask.id);
+
+        if (rejectError) {
+          return NextResponse.json(
+            { error: rejectError.message },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          negotiation_reply: "rejected",
+          negotiation_task_id: negotiationTask.id,
+        });
+      }
+
+      if (counterMatch) {
+        const counterAmount = Number(counterMatch[1]);
+
+        if (!Number.isFinite(counterAmount) || counterAmount <= 0) {
+          return NextResponse.json(
+            { error: "Seller counteroffer amount is invalid." },
+            { status: 400 }
+          );
+        }
+
+        const { error: counterError } = await supabase
+          .from("negotiation_tasks")
+          .update({
+            current_offer: counterAmount,
+            negotiation_status: "seller_counter_received",
+          })
+          .eq("id", negotiationTask.id);
+
+        if (counterError) {
+          return NextResponse.json(
+            { error: counterError.message },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          negotiation_reply: "counter",
+          negotiation_task_id: negotiationTask.id,
+          counter_offer: counterAmount,
+        });
+      }
+
+      return NextResponse.json(
+        {
+          success: false,
+          negotiation_reply: "unclear",
+          negotiation_task_id: negotiationTask.id,
+          error:
+            'Seller reply must begin with "ACCEPT", "REJECT", or "COUNTER $amount".',
+        },
+        { status: 400 }
+      );
+    }
     if (!buyerMessage) {
       return NextResponse.json(
         { error: "Inbound email contained no readable message." },

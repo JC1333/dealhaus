@@ -44,10 +44,12 @@ export async function POST(req: Request) {
           {
             role: "user",
             content: `
-Write a short friendly seller outreach message for DealHaus.
+Write a short, engaging seller outreach message for DealHaus.
+
+DealHaus is a new local AI-powered marketplace brokerage based in Las Vegas, Nevada.
 
 Goal:
-Ask the seller if they are open to DealHaus helping relist/promote their item and only taking a commission if it sells.
+Introduce DealHaus clearly, explain why we are reaching out about this specific item, explain the service and 10% commission, and ask whether the seller is open to hearing more.
 
 Lead:
 Item: ${lead.item_title}
@@ -55,14 +57,24 @@ Seller: ${lead.seller_name || "there"}
 City: ${lead.seller_city || ""}
 Platform: ${lead.platform || ""}
 Asking price: ${lead.asking_price || ""}
-Estimated profit: ${lead.estimated_profit || ""}
+
+Required points:
+- Mention that DealHaus is a new local brokerage here in Las Vegas, Nevada.
+- Mention the seller's specific item naturally.
+- Explain that DealHaus helps promote/relist the item and reach more potential buyers.
+- Seller keeps possession of the item.
+- No upfront fee.
+- DealHaus earns a 10% commission only if DealHaus helps get the item sold.
+- Ask if the seller is open to hearing more about how it works.
 
 Rules:
-- Keep it under 80 words.
-- Friendly, simple, not pushy.
-- Do not mention AI.
+- Keep it around 70-110 words.
+- Friendly, local, professional, conversational, and engaging.
+- Do not sound spammy or overly salesy.
+- Do not claim DealHaus already has a buyer.
 - Do not promise a sale.
-- Mention commission only if it sells.
+- Do not imply the seller has already authorized DealHaus.
+- Do not mention estimated profit or resale spread.
 `,
           },
         ],
