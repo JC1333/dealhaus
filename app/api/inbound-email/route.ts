@@ -256,8 +256,8 @@ export async function POST(req: Request) {
       const sellerReply = buyerMessage.trim();
 
       const counterMatch = sellerReply.match(
-        /^COUNTER\s*:?\s*\$?\s*(\d+(?:\.\d{1,2})?)\b/i
-      );
+  /^(?:COUNTER|COUNTEROFFER|COUNTER\s+OFFER|I\s+COUNTER(?:\s+AT)?)\s*:?\s*\$?\s*(\d+(?:\.\d{1,2})?)\b/i
+);
 
       if (/^ACCEPT\b/i.test(sellerReply)) {
         const { error: taskUpdateError } = await supabase
@@ -358,7 +358,7 @@ export async function POST(req: Request) {
           negotiation_reply: "unclear",
           negotiation_task_id: negotiationTask.id,
           error:
-            'Seller reply must begin with "ACCEPT", "REJECT", or "COUNTER $amount".',
+            'Seller reply must clearly say ACCEPT, REJECT, or provide a counteroffer amount.',
         },
         { status: 400 }
       );
