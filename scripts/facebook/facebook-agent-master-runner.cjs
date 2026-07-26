@@ -1,4 +1,4 @@
-const { spawnSync } = require("child_process");
+﻿const { spawnSync } = require("child_process");
 const path = require("path");
 
 const CHECK_INTERVAL_MS = 60 * 1000;
@@ -124,6 +124,26 @@ async function runMasterSweep() {
       )
     );
 
+    results.push(
+      runAgentSafely(
+        "SELLER CLOSING EMAIL",
+        "seller-closing-email-runner.cjs"
+      )
+    );
+
+    results.push(
+      runAgentSafely(
+        "SELLER TO BUYER RELAY",
+        "seller-to-buyer-relay-runner.cjs"
+      )
+    );
+
+    results.push(
+      runAgentSafely(
+        "BUYER LOGISTICS REPLY CHECK",
+        "closing-logistics-reply-runner.cjs"
+      )
+    );
     console.log("\n######################################");
     console.log("MASTER FACEBOOK SWEEP SUMMARY");
     console.log("######################################");

@@ -187,6 +187,23 @@ function extractBuyerClosingData(notes) {
       replyTo: "dealhaus@duekseleu.resend.app",
       subject,
       text: body,
+      html: body
+        .split("\n")
+        .map((line) => {
+          if (line === "DealHaus") {
+            return "<strong>DealHaus</strong>";
+          }
+          if (line === "Your Marketplace Selling Partner") {
+            return "<em>Your Marketplace Selling Partner</em>";
+          }
+          if (line === "dealhaus.us") {
+            return '<a href="https://dealhaus.us">dealhaus.us</a>';
+          }
+          return line
+            ? line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            : "";
+        })
+        .join("<br>"),
     });
 
   if (sendError) {
@@ -245,5 +262,6 @@ function extractBuyerClosingData(notes) {
   );
   process.exit(1);
 });
+
 
 

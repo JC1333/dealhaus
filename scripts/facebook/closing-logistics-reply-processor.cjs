@@ -60,7 +60,7 @@ function parseMessageAria(aria) {
 
     if (
       tx.meetup_status !==
-      "buyer_coordination_started"
+      "buyer_logistics_confirmation_started"
     ) {
       console.log(
         "\nTRANSACTION NOT WAITING FOR BUYER REPLY"
@@ -105,10 +105,10 @@ function parseMessageAria(aria) {
     // This deliberately ignores the corrupted dash character
     // that exists in the already-sent Facebook message.
     const closingMessageMarker =
-      `Great, ${buyerName}`;
+      `Great, ${buyerName} - the seller confirmed the details.`;
 
     const closingMessageConfirmation =
-      "purchase price is confirmed";
+      "Please let me know if that works for you";
 
     // ------------------------------------------
     // OPEN FACEBOOK
@@ -569,22 +569,20 @@ function parseMessageAria(aria) {
         .trim()
         .toLowerCase();
 
-    let classification = "other";
+    const changeRequest =
+      /\b(but|instead|different|change|can we|could we|what about|another time|later|earlier|doesn'?t work|does not work|can'?t|cannot)\b/i.test(
+        normalized
+      );
 
-    if (
-      /\b(pick\s*up|pickup|pick it up|come get it|come pick it up|i can pick it up|i'll pick it up|i will pick it up)\b/i.test(
+    const affirmative =
+      /\b(yes|yeah|yep|works for me|that works|works|sounds good|perfect|okay|ok|good with me|see you then|i can do that|i'll be there|i will be there)\b/i.test(
         normalized
-      )
-    ) {
-      classification = "pickup";
-    } else if (
-      /\b(assembly|assemble|assembled|delivery|deliver|delivered)\b/i.test(
-        normalized
-      )
-    ) {
-      classification =
-        "assembly_or_delivery";
-    }
+      );
+
+    const classification =
+      affirmative && !changeRequest
+        ? "confirmed"
+        : "needs_review";
 
     console.log(
       "Classification:",
@@ -595,29 +593,26 @@ function parseMessageAria(aria) {
     // SAFE DATABASE STATE
     // ------------------------------------------
 
-    const actionablePreference =
-      classification === "pickup" ||
-      classification ===
-        "assembly_or_delivery";
+    const logisticsConfirmed =
+      classification === "confirmed";
 
     const nextMeetupStatus =
-      actionablePreference
-        ? "buyer_preference_received"
-        : "buyer_reply_needs_review";
+      logisticsConfirmed
+        ? "buyer_logistics_confirmed"
+        : "buyer_logistics_reply_needs_review";
 
     const previousNotes =
       String(tx.notes || "").trim();
 
     const buyerReplyNote =
-      `Buyer closing reply: "${newestReply.message}"\n` +
-      `Buyer preference classification: ${classification}\n` +
+      `Buyer logistics reply: "${newestReply.message}"\n` +
+      `Buyer logistics classification: ${classification}\n` +
       (
-        actionablePreference
-          ? "Next step: seller coordination required."
-          : "Next step: buyer reply requires review before seller coordination."
+        logisticsConfirmed
+          ? "Next step: continue coordination and confirm the real transaction after completion."
+          : "Next step: buyer logistics reply requires review or seller re-coordination."
       );
-
-    const nextNotes =
+const nextNotes =
       previousNotes
         ? `${previousNotes}\n\n${buyerReplyNote}`
         : buyerReplyNote;
@@ -636,7 +631,7 @@ function parseMessageAria(aria) {
       .eq("id", tx.id)
       .eq(
         "meetup_status",
-        "buyer_coordination_started"
+        "buyer_logistics_confirmation_started"
       )
       .select(
         "id,buyer_name,sale_price,meetup_status,buyer_confirmed,seller_confirmed,transaction_status,notes"
@@ -689,5 +684,6 @@ function parseMessageAria(aria) {
 
   process.exit(1);
 });
+
 
 
