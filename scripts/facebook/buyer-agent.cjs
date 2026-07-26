@@ -157,34 +157,90 @@ console.log(
     console.log(conversationTitle);
 
     await heading.click({
-      timeout: 15000,
-      force: true,
-    });
-
-    await page.waitForTimeout(1500);
+  timeout: 15000,
+  force: true,
+});
 
 let threadBody = "";
+let previousMessageSnapshot = "";
+let stableMessagePasses = 0;
 
-for (let attempt = 1; attempt <= 10; attempt++) {
-  threadBody = await page.locator("body").innerText();
+for (let attempt = 1; attempt <= 15; attempt++) {
+  await page.waitForTimeout(1000);
 
-  const threadLoaded =
-    threadBody.includes(conversationTitle) &&
-    (
-      threadBody.includes("View buyer profile") ||
-      threadBody.includes("View buyer") ||
-      threadBody.includes("started this chat")
+  const conversationContainer = page.locator(
+    `[aria-label="Messages in conversation titled ${conversationTitle}"]`
+  );
+
+  const conversationVisible =
+    await conversationContainer
+      .isVisible()
+      .catch(() => false);
+
+  if (!conversationVisible) {
+    console.log(
+      `WAITING FOR BUYER THREAD TO LOAD ${attempt}/15`
     );
+    continue;
+  }
 
-  if (threadLoaded) {
+  threadBody = await conversationContainer
+    .innerText()
+    .catch(() => "");
+
+  const messageElements = conversationContainer.locator(
+    '[aria-label^="Enter, Message sent"]'
+  );
+
+  const messageCount = await messageElements.count();
+
+  const messageSnapshot = [];
+
+  for (let messageIndex = 0; messageIndex < messageCount; messageIndex++) {
+    const messageAria =
+      (await messageElements
+        .nth(messageIndex)
+        .getAttribute("aria-label")) || "";
+
+    if (messageAria) {
+      messageSnapshot.push(messageAria);
+    }
+  }
+
+  const currentMessageSnapshot =
+    messageSnapshot.join("\n");
+
+  if (
+    currentMessageSnapshot &&
+    currentMessageSnapshot === previousMessageSnapshot
+  ) {
+    stableMessagePasses++;
+  } else {
+    stableMessagePasses = 0;
+  }
+
+  previousMessageSnapshot =
+    currentMessageSnapshot;
+
+  if (
+    messageCount > 0 &&
+    stableMessagePasses >= 1
+  ) {
+    console.log(
+      `BUYER THREAD STABLE: ${messageCount} MESSAGE ELEMENTS`
+    );
     break;
   }
 
   console.log(
-    `WAITING FOR BUYER THREAD TO LOAD ${attempt}/10`
+    `WAITING FOR BUYER MESSAGES TO STABILIZE ${attempt}/15`
   );
+}
 
-  await page.waitForTimeout(1000);
+if (!threadBody) {
+  throw new Error(
+    `Buyer conversation "${conversationTitle}" did not fully load`
+  );
 }
 
     // Seller-side conversations started by DealHaus must be ignored.
@@ -315,7 +371,11 @@ for (let attempt = 1; attempt <= 10; attempt++) {
             last_message:
               newestBuyerMessage.message,
             conversation_stage:
-              "facebook_buyer_inquiry",
+  ["offer_accepted", "ready_to_close", "sold", "closed"].includes(
+    String(conversation.conversation_stage || "").toLowerCase()
+  )
+    ? conversation.conversation_stage
+    : "facebook_buyer_inquiry",
             unread_count: nextUnread,
           })
           .eq("id", conversation.id);
@@ -700,6 +760,12 @@ Rules:
 - Never say you are AI.
 - Never invent listing facts.
 - Never invent availability, dimensions, condition, delivery, pickup details, seller details, or pricing.
+- Treat the supplied listing title, price, description, status, deal stage, and location as binding source-of-truth facts.
+- Preserve conditions, bundles, fees, distances, and exceptions exactly as written in the listing.
+- Never separate two terms that the listing makes conditional on each other.
+- Example: if the listing says a paid assembly service includes free delivery within a certain distance, DO NOT tell the buyer that delivery itself is free and assembly is optional.
+- For delivery, pickup, assembly, fees, warranties, or other operational terms, materially preserve the exact conditions from the listing description.
+- If those terms are missing or genuinely ambiguous, set needs_human_review to true instead of interpreting or guessing.
 - Never expose private seller information.
 - Never claim an item is available unless supplied listing data confirms it.
 - Never accept or reject a buyer's lower offer automatically.
@@ -953,12 +1019,31 @@ console.log(decision.response);
 
 await composer.press("Enter");
 
-await page.waitForTimeout(2500);
-
 // Verify externally before changing DealHaus state.
-currentThreadBody = await page.locator("body").innerText();
+// Facebook Messenger can take several seconds to render
+// a newly sent message, so retry instead of failing after
+// one immediate page read.
+let buyerResponseVerified = false;
 
-if (!currentThreadBody.includes(decision.response)) {
+for (let verifyAttempt = 1; verifyAttempt <= 12; verifyAttempt++) {
+  await page.waitForTimeout(1000);
+
+  currentThreadBody = await page
+    .locator("body")
+    .innerText()
+    .catch(() => "");
+
+  if (currentThreadBody.includes(decision.response)) {
+    buyerResponseVerified = true;
+    break;
+  }
+
+  console.log(
+    `WAITING FOR BUYER RESPONSE VERIFICATION ${verifyAttempt}/12`
+  );
+}
+
+if (!buyerResponseVerified) {
   throw new Error(
     "Exact buyer response was not verified in Facebook after send"
   );
@@ -1148,9 +1233,25 @@ if (negotiationTaskId) {
   }
 }
 }
+const existingConversationStage =
+  String(
+    conversation?.conversation_stage || ""
+  ).toLowerCase();
+
+const terminalConversationStages = [
+  "offer_accepted",
+  "ready_to_close",
+  "sold",
+  "closed",
+];
+
 const nextStage =
   acceptedSellerCounter === true
     ? "offer_accepted"
+    : terminalConversationStages.includes(
+        existingConversationStage
+      )
+    ? conversation.conversation_stage
     : decision.ready_for_negotiation === true
     ? "ready_for_negotiation"
     : "buyer_contacted";
