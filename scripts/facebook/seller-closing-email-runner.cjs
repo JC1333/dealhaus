@@ -9,10 +9,10 @@ const supabase = createClient(
 );
 
 async function runClosingStartRunner() {
-  console.log("\nDEALHAUS CLOSING START RUNNER");
+  console.log("\nDEALHAUS SELLER CLOSING EMAIL RUNNER");
   console.log("-----------------------------");
   console.log(
-    "Finding open transactions ready to begin buyer closing coordination."
+    "Finding transactions waiting for seller closing coordination."
   );
 
   const {
@@ -42,7 +42,7 @@ async function runClosingStartRunner() {
     );
 
     console.log(
-      "\nCLOSING START RUNNER COMPLETE"
+      "\nSELLER CLOSING EMAIL RUNNER COMPLETE"
     );
 
     return;
@@ -159,7 +159,7 @@ async function runClosingStartRunner() {
   );
 
   console.log(
-    "CLOSING START RUNNER COMPLETE"
+    "SELLER CLOSING EMAIL RUNNER COMPLETE"
   );
 
   console.log(
@@ -190,3 +190,4 @@ runClosingStartRunner().catch((error) => {
 
   process.exit(1);
 });
+
