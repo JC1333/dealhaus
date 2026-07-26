@@ -45,6 +45,32 @@ function runAgent(label, scriptName) {
   console.log(`\n${label} COMPLETE`);
 }
 
+function runAgentSafely(label, scriptName) {
+  try {
+    runAgent(label, scriptName);
+
+    return {
+      label,
+      status: "success",
+    };
+  } catch (error) {
+    console.error(
+      `\n${label} ERROR:`,
+      error.message
+    );
+
+    console.log(
+      "Master sweep will continue to the next independent stage."
+    );
+
+    return {
+      label,
+      status: "failed",
+      error: error.message,
+    };
+  }
+}
+
 async function runMasterSweep() {
   if (running) {
     console.log(
@@ -61,24 +87,68 @@ async function runMasterSweep() {
   console.log("######################################");
 
   try {
-    runAgent(
-      "SELLER AGENT SWEEP",
-      "seller-agent-runner.cjs"
+    const results = [];
+
+    results.push(
+      runAgentSafely(
+        "SELLER AGENT SWEEP",
+        "seller-agent-runner.cjs"
+      )
     );
 
-    runAgent(
-      "BUYER AGENT SWEEP",
-      "buyer-agent-runner.cjs"
+    results.push(
+      runAgentSafely(
+        "BUYER AGENT SWEEP",
+        "buyer-agent-runner.cjs"
+      )
+    );
+
+    results.push(
+      runAgentSafely(
+        "CLOSING TRANSACTION SYNC",
+        "closing-agent.cjs"
+      )
+    );
+
+    results.push(
+      runAgentSafely(
+        "BUYER CLOSING START",
+        "closing-start-runner.cjs"
+      )
+    );
+
+    results.push(
+      runAgentSafely(
+        "BUYER CLOSING REPLY CHECK",
+        "closing-reply-runner.cjs"
+      )
+    );
+
+    console.log("\n######################################");
+    console.log("MASTER FACEBOOK SWEEP SUMMARY");
+    console.log("######################################");
+
+    for (const result of results) {
+      console.log(
+        `${result.status === "success" ? "PASS" : "FAIL"} - ${result.label}`
+      );
+    }
+
+    const failures = results.filter(
+      (result) => result.status === "failed"
+    );
+
+    console.log(
+      `\nStages passed: ${results.length - failures.length}`
+    );
+
+    console.log(
+      `Stages failed: ${failures.length}`
     );
 
     console.log("\n######################################");
     console.log("MASTER FACEBOOK SWEEP COMPLETE");
     console.log("######################################");
-  } catch (error) {
-    console.error(
-      "\nMASTER FACEBOOK SWEEP ERROR:",
-      error.message
-    );
   } finally {
     running = false;
   }
@@ -87,7 +157,10 @@ async function runMasterSweep() {
 console.log("\nDEALHAUS FACEBOOK MASTER AGENT");
 console.log("------------------------------------");
 console.log(
-  "Seller and Buyer agents will run sequentially."
+  "Seller, Buyer, and Closing agents run sequentially."
+);
+console.log(
+  "A failure in one independent stage will not block the remaining stages."
 );
 console.log(
   "A new master sweep starts every 60 seconds when idle."
