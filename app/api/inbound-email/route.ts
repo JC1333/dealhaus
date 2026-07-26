@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
@@ -138,6 +138,234 @@ export async function POST(req: Request) {
       (receivedEmail.html ? stripHtml(receivedEmail.html) : "");
 
     const buyerMessage = extractNewestReply(rawMessage);
+    // Closing coordination seller replies are routed by exact
+    // brokerage transaction ID before negotiation or buyer-email handling.
+    const closingSubject =
+      receivedEmail.subject || event.data?.subject || "";
+
+    const closingMatch = closingSubject.match(
+      /DealHaus Closing Coordination \[([0-9a-f-]{36})\]/i
+    );
+
+    if (closingMatch) {
+      if (!buyerMessage) {
+        return NextResponse.json(
+          {
+            error:
+              "Seller closing reply contained no readable message.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const transactionId = closingMatch[1];
+
+      const {
+        data: closingTransaction,
+        error: closingTransactionError,
+      } = await supabase
+        .from("brokerage_transactions")
+        .select("*")
+        .eq("id", transactionId)
+        .single();
+
+      if (
+        closingTransactionError ||
+        !closingTransaction
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              closingTransactionError?.message ||
+              "Closing transaction could not be found.",
+          },
+          { status: 404 }
+        );
+      }
+
+      if (
+        closingTransaction.transaction_status !== "open"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Closing transaction is not open.",
+          },
+          { status: 409 }
+        );
+      }
+
+      if (
+        closingTransaction.meetup_status !==
+        "seller_coordination_started"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Closing transaction is not waiting for a seller coordination reply.",
+          },
+          { status: 409 }
+        );
+      }
+
+      if (!closingTransaction.seller_lead_id) {
+        return NextResponse.json(
+          {
+            error:
+              "Closing transaction has no linked seller lead.",
+          },
+          { status: 409 }
+        );
+      }
+
+      const {
+        data: closingSellerLead,
+        error: closingSellerLeadError,
+      } = await supabase
+        .from("seller_leads")
+        .select(
+          "id,seller_name,seller_email,approval_status,agreement_accepted,preferred_contact_method"
+        )
+        .eq(
+          "id",
+          closingTransaction.seller_lead_id
+        )
+        .single();
+
+      if (
+        closingSellerLeadError ||
+        !closingSellerLead
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              closingSellerLeadError?.message ||
+              "Closing seller lead could not be found.",
+          },
+          { status: 404 }
+        );
+      }
+
+      if (
+        closingSellerLead.approval_status !==
+          "approved" ||
+        closingSellerLead.agreement_accepted !== true
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Closing seller is not approved for DealHaus coordination.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const expectedSellerEmail =
+        String(
+          closingSellerLead.seller_email || ""
+        )
+          .trim()
+          .toLowerCase();
+
+      if (
+        !expectedSellerEmail ||
+        buyerEmail !== expectedSellerEmail
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Seller closing reply sender does not match the transaction seller.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const sellerReply =
+        buyerMessage.trim();
+
+      const normalizedSellerReply =
+        sellerReply.toLowerCase();
+
+      const actionableClosingReply =
+        /\b(pick\s*up|pickup|delivery|deliver|assembly|assemble|available|availability|today|tomorrow|morning|afternoon|evening|am|pm|address|location|time)\b/i.test(
+          normalizedSellerReply
+        );
+
+      const nextMeetupStatus =
+        actionableClosingReply
+          ? "seller_preference_received"
+          : "seller_reply_needs_review";
+
+      const previousNotes =
+        String(
+          closingTransaction.notes || ""
+        ).trim();
+
+      const closingReplyNote =
+        `Seller closing reply: "${sellerReply}"\n` +
+        `Seller reply classification: ${
+          actionableClosingReply
+            ? "actionable"
+            : "needs_review"
+        }\n` +
+        (
+          actionableClosingReply
+            ? "Next step: relay confirmed seller coordination details to buyer."
+            : "Next step: seller closing reply requires review before buyer coordination."
+        );
+
+      const nextNotes =
+        previousNotes
+          ? `${previousNotes}\n\n${closingReplyNote}`
+          : closingReplyNote;
+
+      const {
+        data: updatedClosingTransaction,
+        error: closingUpdateError,
+      } = await supabase
+        .from("brokerage_transactions")
+        .update({
+          meetup_status:
+            nextMeetupStatus,
+          notes:
+            nextNotes,
+        })
+        .eq(
+          "id",
+          closingTransaction.id
+        )
+        .eq(
+          "meetup_status",
+          "seller_coordination_started"
+        )
+        .select(
+          "id,buyer_name,seller_name,sale_price,meetup_status,buyer_confirmed,seller_confirmed,transaction_status,notes"
+        )
+        .single();
+
+      if (closingUpdateError) {
+        return NextResponse.json(
+          {
+            error:
+              closingUpdateError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        closing_reply:
+          actionableClosingReply
+            ? "seller_preference_received"
+            : "seller_reply_needs_review",
+        transaction_id:
+          updatedClosingTransaction.id,
+        meetup_status:
+          updatedClosingTransaction.meetup_status,
+      });
+    }
+
     // Seller negotiation replies are routed before normal buyer-email handling.
     const negotiationSubject =
       receivedEmail.subject || event.data?.subject || "";

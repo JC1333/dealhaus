@@ -1,4 +1,4 @@
-const { chromium } = require("playwright");
+﻿const { chromium } = require("playwright");
 const { createClient } = require("@supabase/supabase-js");
 const path = require("path");
 
@@ -169,10 +169,7 @@ function parseMessageAria(aria) {
           "MARKETPLACE CONTROL FOUND"
         );
 
-        await marketplace.click({
-          timeout: 15000,
-          force: true,
-        });
+        await marketplace.evaluate((el) => el.click());
 
         await page.waitForTimeout(3000);
 
@@ -686,3 +683,4 @@ function parseMessageAria(aria) {
 
   process.exit(1);
 });
+
