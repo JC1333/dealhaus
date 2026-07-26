@@ -144,6 +144,40 @@ async function runMasterSweep() {
         "closing-logistics-reply-runner.cjs"
       )
     );
+    results.push(
+      runAgentSafely(
+        "MEETUP SCHEDULER",
+        "closing-meetup-scheduler-runner.cjs"
+      )
+    );
+
+    results.push(
+      runAgentSafely(
+        "BUYER COMPLETION CHECK",
+        "buyer-completion-check-runner.cjs"
+      )
+    );
+
+    results.push(
+      runAgentSafely(
+        "SELLER COMPLETION CHECK",
+        "seller-completion-check-runner.cjs"
+      )
+    );
+
+    results.push(
+      runAgentSafely(
+        "BUYER COMPLETION REPLY CHECK",
+        "buyer-completion-reply-runner.cjs"
+      )
+    );
+
+    results.push(
+      runAgentSafely(
+        "COMPLETION FINALIZER",
+        "closing-completion-finalizer-runner.cjs"
+      )
+    );
     console.log("\n######################################");
     console.log("MASTER FACEBOOK SWEEP SUMMARY");
     console.log("######################################");
@@ -192,3 +226,4 @@ runMasterSweep();
 setInterval(() => {
   runMasterSweep();
 }, CHECK_INTERVAL_MS);
+

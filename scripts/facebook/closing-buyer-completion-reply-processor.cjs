@@ -60,7 +60,7 @@ function parseMessageAria(aria) {
 
     if (
       tx.meetup_status !==
-      "buyer_logistics_confirmation_started"
+      "completion_confirmations_requested"
     ) {
       console.log(
         "\nTRANSACTION NOT WAITING FOR BUYER REPLY"
@@ -105,10 +105,10 @@ function parseMessageAria(aria) {
     // This deliberately ignores the corrupted dash character
     // that exists in the already-sent Facebook message.
     const closingMessageMarker =
-      `Great, ${buyerName} - the seller confirmed the details.`;
+      `Hi ${buyerName} - just checking in.`;
 
     const closingMessageConfirmation =
-      "Please let me know if that works for you";
+      "Did everything go through successfully";
 
     // ------------------------------------------
     // OPEN FACEBOOK
@@ -583,20 +583,22 @@ function parseMessageAria(aria) {
         .trim()
         .toLowerCase();
 
-    const changeRequest =
-      /\b(but|instead|different|change|can we|could we|what about|another time|later|earlier|doesn'?t work|does not work|can'?t|cannot)\b/i.test(
+    const explicitlyNotCompleted =
+      /\b(no|not yet|didn'?t|did not|wasn'?t|was not|never happened|no show|didn'?t show|did not show|cancelled|canceled|fell through|still have it|still working it out|problem|issue)\b/i.test(
         normalized
       );
 
-    const affirmative =
-      /\b(yes|yeah|yep|works for me|that works|works|sounds good|perfect|okay|ok|good with me|see you then|i can do that|i'll be there|i will be there)\b/i.test(
+    const explicitlyCompleted =
+      /\b(yes|yep|yeah|completed|complete|all done|done|went through|worked out|everything went well|everything went great|picked it up|picked up|got it|transaction completed|sale completed|sold)\b/i.test(
         normalized
       );
 
     const classification =
-      affirmative && !changeRequest
-        ? "confirmed"
-        : "needs_review";
+      explicitlyNotCompleted
+        ? "not_completed"
+        : explicitlyCompleted
+          ? "completed"
+          : "needs_review";
 
     console.log(
       "Classification:",
@@ -607,30 +609,34 @@ function parseMessageAria(aria) {
     // SAFE DATABASE STATE
     // ------------------------------------------
 
-    const logisticsConfirmed =
-      classification === "confirmed";
+    const buyerCompleted =
+      classification === "completed";
 
     const nextMeetupStatus =
-      logisticsConfirmed
-        ? "buyer_logistics_confirmed"
-        : "buyer_logistics_reply_needs_review";
+      buyerCompleted
+        ? "completion_confirmations_requested"
+        : classification === "not_completed"
+          ? "buyer_completion_not_completed"
+          : "buyer_completion_reply_needs_review";
 
     const previousNotes =
       String(tx.notes || "").trim();
 
     const buyerReplyNote =
-      `Buyer logistics reply: "${newestReply.message}"\n` +
-      `Buyer logistics classification: ${classification}\n` +
+      `Buyer completion reply: "${newestReply.message}"\n` +
+      `Buyer completion classification: ${classification}\n` +
       (
-        logisticsConfirmed
-          ? "Next step: continue coordination and confirm the real transaction after completion."
-          : "Next step: buyer logistics reply requires review or seller re-coordination."
+        buyerCompleted
+          ? "Buyer confirmed the real-world transaction completed. Seller confirmation is still required."
+          : classification === "not_completed"
+            ? "Buyer reported the transaction did not complete. Human review or re-coordination required."
+            : "Buyer completion reply requires review."
       );
-const nextNotes =
+
+    const nextNotes =
       previousNotes
         ? `${previousNotes}\n\n${buyerReplyNote}`
         : buyerReplyNote;
-
     const {
       data: updatedTransaction,
       error: updateError,
@@ -645,7 +651,7 @@ const nextNotes =
       .eq("id", tx.id)
       .eq(
         "meetup_status",
-        "buyer_logistics_confirmation_started"
+        "completion_confirmations_requested"
       )
       .select(
         "id,buyer_name,sale_price,meetup_status,buyer_confirmed,seller_confirmed,transaction_status,notes"
@@ -698,6 +704,10 @@ const nextNotes =
 
   process.exit(1);
 });
+
+
+
+
 
 
 

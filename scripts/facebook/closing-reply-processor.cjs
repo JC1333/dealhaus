@@ -393,9 +393,23 @@ function parseMessageAria(aria) {
         `STABLE=${stablePasses}`
       );
       if (!closingMessageFound) {
-        await container.hover().catch(() => {});
-        await page.mouse.wheel(0, -1200);
-        await page.waitForTimeout(1200);
+        if (count > 0) {
+          const oldestRenderedMessage =
+            messageElements.first();
+
+          await oldestRenderedMessage
+            .scrollIntoViewIfNeeded()
+            .catch(() => {});
+
+          await oldestRenderedMessage
+            .hover()
+            .catch(() => {});
+        } else {
+          await container.hover().catch(() => {});
+        }
+
+        await page.mouse.wheel(0, -1800);
+        await page.waitForTimeout(1500);
       }
 
 
@@ -689,5 +703,6 @@ function parseMessageAria(aria) {
 
   process.exit(1);
 });
+
 
 

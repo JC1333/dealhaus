@@ -138,6 +138,240 @@ export async function POST(req: Request) {
       (receivedEmail.html ? stripHtml(receivedEmail.html) : "");
 
     const buyerMessage = extractNewestReply(rawMessage);
+    // Seller sale-completion replies are routed by exact
+    // brokerage transaction ID before normal closing/negotiation handling.
+    const sellerCompletionSubject =
+      receivedEmail.subject || event.data?.subject || "";
+
+    const sellerCompletionMatch =
+      sellerCompletionSubject.match(
+        /DealHaus Sale Completion \[([0-9a-f-]{36})\]/i
+      );
+
+    if (sellerCompletionMatch) {
+      if (!buyerMessage) {
+        return NextResponse.json(
+          {
+            error:
+              "Seller completion reply contained no readable message.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const transactionId =
+        sellerCompletionMatch[1];
+
+      const {
+        data: completionTransaction,
+        error: completionTransactionError,
+      } = await supabase
+        .from("brokerage_transactions")
+        .select("*")
+        .eq("id", transactionId)
+        .single();
+
+      if (
+        completionTransactionError ||
+        !completionTransaction
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              completionTransactionError?.message ||
+              "Completion transaction could not be found.",
+          },
+          { status: 404 }
+        );
+      }
+
+      if (
+        completionTransaction.transaction_status !== "open" ||
+        completionTransaction.meetup_status !==
+          "completion_confirmations_requested"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Transaction is not waiting for seller completion confirmation.",
+          },
+          { status: 409 }
+        );
+      }
+
+      if (!completionTransaction.seller_lead_id) {
+        return NextResponse.json(
+          {
+            error:
+              "Completion transaction has no linked seller lead.",
+          },
+          { status: 409 }
+        );
+      }
+
+      const {
+        data: completionSeller,
+        error: completionSellerError,
+      } = await supabase
+        .from("seller_leads")
+        .select(
+          "id,seller_name,seller_email,approval_status,agreement_accepted"
+        )
+        .eq(
+          "id",
+          completionTransaction.seller_lead_id
+        )
+        .single();
+
+      if (
+        completionSellerError ||
+        !completionSeller
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              completionSellerError?.message ||
+              "Completion seller could not be found.",
+          },
+          { status: 404 }
+        );
+      }
+
+      if (
+        completionSeller.approval_status !== "approved" ||
+        completionSeller.agreement_accepted !== true
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Seller is not approved for DealHaus completion processing.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const expectedSellerEmail =
+        String(completionSeller.seller_email || "")
+          .trim()
+          .toLowerCase();
+
+      if (
+        !expectedSellerEmail ||
+        buyerEmail !== expectedSellerEmail
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Seller completion reply sender does not match the transaction seller.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const sellerReply =
+        buyerMessage.trim();
+
+      const normalized =
+        sellerReply.toLowerCase();
+
+      const explicitlyNotCompleted =
+        /\b(no|not yet|didn'?t|did not|wasn'?t|was not|never happened|no show|didn'?t show|did not show|cancelled|canceled|fell through|still have it|problem|issue)\b/i.test(
+          normalized
+        );
+
+      const explicitlyCompleted =
+        /\b(yes|yep|yeah|completed|complete|all done|done|went through|worked out|everything went well|everything went great|picked it up|picked up|sold|sale completed|transaction completed)\b/i.test(
+          normalized
+        );
+
+      const classification =
+        explicitlyNotCompleted
+          ? "not_completed"
+          : explicitlyCompleted
+            ? "completed"
+            : "needs_review";
+
+      const sellerCompleted =
+        classification === "completed";
+
+      const nextMeetupStatus =
+        sellerCompleted
+          ? "completion_confirmations_requested"
+          : classification === "not_completed"
+            ? "seller_completion_not_completed"
+            : "seller_completion_reply_needs_review";
+
+      const previousNotes =
+        String(
+          completionTransaction.notes || ""
+        ).trim();
+
+      const completionReplyNote =
+        `Seller completion reply: "${sellerReply}"\n` +
+        `Seller completion classification: ${classification}\n` +
+        (
+          sellerCompleted
+            ? "Seller confirmed the real-world transaction completed. Buyer confirmation is still required."
+            : classification === "not_completed"
+              ? "Seller reported the transaction did not complete. Human review or re-coordination required."
+              : "Seller completion reply requires review."
+        );
+
+      const nextNotes =
+        previousNotes
+          ? `${previousNotes}\n\n${completionReplyNote}`
+          : completionReplyNote;
+
+      const {
+        data: updatedCompletionTransaction,
+        error: completionUpdateError,
+      } = await supabase
+        .from("brokerage_transactions")
+        .update({
+          meetup_status:
+            nextMeetupStatus,
+          seller_confirmed:
+            sellerCompleted
+              ? true
+              : completionTransaction.seller_confirmed,
+          notes:
+            nextNotes,
+        })
+        .eq(
+          "id",
+          completionTransaction.id
+        )
+        .eq(
+          "meetup_status",
+          "completion_confirmations_requested"
+        )
+        .select(
+          "id,meetup_status,buyer_confirmed,seller_confirmed,transaction_status,notes"
+        )
+        .single();
+
+      if (completionUpdateError) {
+        return NextResponse.json(
+          {
+            error:
+              completionUpdateError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        seller_completion:
+          classification,
+        transaction_id:
+          updatedCompletionTransaction.id,
+        meetup_status:
+          updatedCompletionTransaction.meetup_status,
+        seller_confirmed:
+          updatedCompletionTransaction.seller_confirmed,
+      });
+    }
     // Closing coordination seller replies are routed by exact
     // brokerage transaction ID before negotiation or buyer-email handling.
     const closingSubject =
@@ -863,3 +1097,6 @@ dealhaus.us`;
     );
   }
 }
+
+
+
