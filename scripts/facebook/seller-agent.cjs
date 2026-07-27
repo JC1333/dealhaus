@@ -382,6 +382,14 @@ async function verifyExactResponseInThread(
     );
   }
 
+  if (
+    lead.marketplace_listing_url &&
+    !/facebook\.com/i.test(lead.marketplace_listing_url)
+  ) {
+    throw new Error(
+      `Facebook Seller Agent cannot process non-Facebook listing URL: ${lead.marketplace_listing_url}`
+    );
+  }
   const profileDir = path.join(
     process.cwd(),
     ".dealhaus-facebook-profile"

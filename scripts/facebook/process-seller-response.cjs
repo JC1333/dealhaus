@@ -169,7 +169,7 @@ if (decision.intent === "not_interested") {
     .update({
       status: "rejected",
       outreach_status: "not_interested",
-      outreach_notes: `Facebook seller reply: ${sellerMessage}`,
+      outreach_notes: `${lead.platform || "Marketplace"} seller reply: ${sellerMessage}`,
     })
     .eq("id", LEAD_ID);
 
@@ -198,6 +198,99 @@ if (decision.intent === "not_interested") {
   console.log("\nDEALHAUS PIPELINE UPDATED:");
   console.log("Seller marked NOT INTERESTED / REJECTED");
 }
+
+if (decision.seller_agreed === true) {
+  const { error: leadApprovalError } = await supabase
+    .from("seller_leads")
+    .update({
+      status: "seller_approved",
+      outreach_status: "seller_approved",
+      approval_status: "approved",
+      agreement_accepted: true,
+      approval_notes:
+        `Seller explicitly agreed through ${lead.platform || "Marketplace"}. Reply: ${sellerMessage}`,
+      outreach_notes:
+        `${lead.platform || "Marketplace"} seller authorization: ${sellerMessage}`,
+    })
+    .eq("id", LEAD_ID);
+
+  if (leadApprovalError) {
+    throw leadApprovalError;
+  }
+
+  const {
+    data: existingPrepTasks,
+    error: prepLookupError,
+  } = await supabase
+    .from("listing_prep_tasks")
+    .select("id")
+    .eq("seller_lead_id", LEAD_ID)
+    .limit(1);
+
+  if (prepLookupError) {
+    throw prepLookupError;
+  }
+
+  if (!existingPrepTasks?.length) {
+    const { error: prepInsertError } = await supabase
+      .from("listing_prep_tasks")
+      .insert({
+        seller_lead_id: lead.id,
+        item_title: lead.item_title,
+        seller_name: lead.seller_name || null,
+        seller_city: lead.seller_city,
+        seller_state: lead.seller_state,
+        asking_price: lead.asking_price,
+        estimated_profit: lead.estimated_profit,
+        prep_status: "ready_for_relist",
+      });
+
+    if (prepInsertError) {
+      throw prepInsertError;
+    }
+  }
+
+  const { error: relistStatusError } = await supabase
+    .from("seller_leads")
+    .update({
+      status: "sent_to_relist_queue",
+    })
+    .eq("id", LEAD_ID);
+
+  if (relistStatusError) {
+    throw relistStatusError;
+  }
+
+  const { data: tasks, error: taskLookupError } =
+    await supabase
+      .from("outreach_tasks")
+      .select("id")
+      .eq("seller_lead_id", LEAD_ID)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+  if (taskLookupError) {
+    throw taskLookupError;
+  }
+
+  if (tasks?.[0]) {
+    const { error: taskUpdateError } = await supabase
+      .from("outreach_tasks")
+      .update({
+        send_status: "seller_replied",
+      })
+      .eq("id", tasks[0].id);
+
+    if (taskUpdateError) {
+      throw taskUpdateError;
+    }
+  }
+
+  console.log("\nDEALHAUS AUTHORIZATION HANDOFF COMPLETE:");
+  console.log(
+    "Seller approved / agreement accepted / sent to relist queue"
+  );
+}
   return decision;
 }
 
@@ -210,7 +303,18 @@ if (!sellerMessage) {
   process.exit(0);
 }
 
-processSellerResponse(sellerMessage).catch((error) => {
-  console.error("PROCESSING FAILED:", error.message);
-  process.exit(1);
-});
+processSellerResponse(sellerMessage)
+  .then((decision) => {
+    console.log(
+      "DEALHAUS_SELLER_DECISION_JSON:" +
+        JSON.stringify(decision)
+    );
+  })
+  .catch((error) => {
+    console.error(
+      "PROCESSING FAILED:",
+      error.message
+    );
+    process.exit(1);
+  });
+

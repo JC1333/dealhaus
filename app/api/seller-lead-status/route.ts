@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 
@@ -75,6 +75,9 @@ Rules:
 - Do not promise a sale.
 - Do not imply the seller has already authorized DealHaus.
 - Do not mention estimated profit or resale spread.
+- Never use placeholders such as [Your Name], [Name], [Your Company], or bracketed template text.
+- Do not invent an individual DealHaus representative name.
+- If using a sign-off, use "DealHaus" or "The DealHaus Team".
 `,
           },
         ],
@@ -106,23 +109,61 @@ Rules:
       .single();
 
 if (status === "approved_for_outreach" && data?.outreach_message) {
-  const { error: taskError } = await supabase
-    .from("outreach_tasks")
-    .insert({
-      seller_lead_id: data.id,
-      item_title: data.item_title,
-      seller_name: data.seller_name,
-      platform: data.platform,
-      outreach_message: data.outreach_message,
-      send_status: "pending",
-      attempt_count: 0,
-    });
+  const { data: existingTasks, error: existingTaskError } =
+    await supabase
+      .from("outreach_tasks")
+      .select("id,send_status")
+      .eq("seller_lead_id", data.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
 
-  if (taskError) {
-    return NextResponse.json({ error: taskError.message }, { status: 500 });
+  if (existingTaskError) {
+    return NextResponse.json(
+      { error: existingTaskError.message },
+      { status: 500 }
+    );
+  }
+
+  if (existingTasks?.[0]) {
+    if (existingTasks[0].send_status === "pending") {
+      const { error: taskUpdateError } = await supabase
+        .from("outreach_tasks")
+        .update({
+          item_title: data.item_title,
+          seller_name: data.seller_name,
+          platform: data.platform,
+          outreach_message: data.outreach_message,
+        })
+        .eq("id", existingTasks[0].id);
+
+      if (taskUpdateError) {
+        return NextResponse.json(
+          { error: taskUpdateError.message },
+          { status: 500 }
+        );
+      }
+    }
+  } else {
+    const { error: taskError } = await supabase
+      .from("outreach_tasks")
+      .insert({
+        seller_lead_id: data.id,
+        item_title: data.item_title,
+        seller_name: data.seller_name,
+        platform: data.platform,
+        outreach_message: data.outreach_message,
+        send_status: "pending",
+        attempt_count: 0,
+      });
+
+    if (taskError) {
+      return NextResponse.json(
+        { error: taskError.message },
+        { status: 500 }
+      );
+    }
   }
 }
-
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -135,3 +176,4 @@ if (status === "approved_for_outreach" && data?.outreach_message) {
     );
   }
 }
+

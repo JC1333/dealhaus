@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
@@ -172,6 +172,7 @@ export async function POST(req: Request) {
         seller_state: sellerState,
         seller_zip: sellerZip || null,
         preferred_contact_method: preferredContact,
+        marketplace_listing_url: existingImport.listing_url || null,
         seller_confirmed: true,
         import_status: "confirmed",
         import_notes:

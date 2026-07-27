@@ -1,4 +1,4 @@
-const { createClient } = require("@supabase/supabase-js");
+﻿const { createClient } = require("@supabase/supabase-js");
 const { spawn } = require("child_process");
 const path = require("path");
 
@@ -31,7 +31,7 @@ async function runSellerSweep() {
 
     const { data: leads, error } = await supabase
       .from("seller_leads")
-      .select("id,item_title,outreach_status,status")
+      .select("id,item_title,platform,lead_source,marketplace_listing_url,outreach_status,status")
       .eq("outreach_status", "contacted")
       .order("created_at", { ascending: true });
 
@@ -48,11 +48,18 @@ async function runSellerSweep() {
       `Contacted sellers waiting: ${leads.length}`
     );
 
-    const sellerAgentPath = path.join(
+    const facebookSellerAgentPath = path.join(
       process.cwd(),
       "scripts",
       "facebook",
       "seller-agent.cjs"
+    );
+
+    const offerUpSellerAgentPath = path.join(
+      process.cwd(),
+      "scripts",
+      "offerup",
+      "read-offerup-reply.cjs"
     );
 
     for (const lead of leads) {
@@ -60,6 +67,35 @@ async function runSellerSweep() {
       console.log("Checking seller:", lead.item_title);
       console.log("Lead ID:", lead.id);
       console.log("--------------------------------------");
+
+      const platform = String(
+        lead.platform || ""
+      ).toLowerCase();
+
+      const listingUrl = String(
+        lead.marketplace_listing_url || ""
+      ).toLowerCase();
+
+      let sellerAgentPath = null;
+
+      if (
+        platform.includes("offerup") ||
+        listingUrl.includes("offerup.com")
+      ) {
+        sellerAgentPath = offerUpSellerAgentPath;
+        console.log("Platform route: OFFERUP");
+      } else if (
+        platform.includes("facebook") ||
+        listingUrl.includes("facebook.com")
+      ) {
+        sellerAgentPath = facebookSellerAgentPath;
+        console.log("Platform route: FACEBOOK");
+      } else {
+        console.log(
+          `SKIPPED: Unsupported contacted seller platform: ${lead.platform || lead.lead_source || "unknown"}`
+        );
+        continue;
+      }
 
       const childSucceeded = await new Promise((resolve) => {
         const child = spawn(
@@ -91,7 +127,10 @@ async function runSellerSweep() {
             `Seller Agent finished with exit code ${code}.`
           );
 
-          resolve(!processError && code === 0);
+          resolve(
+            !processError &&
+            code === 0
+          );
         });
       });
 
@@ -123,7 +162,7 @@ async function runSellerSweep() {
   }
 }
 
-console.log("\nDEALHAUS FACEBOOK SELLER AGENT RUNNER");
+console.log("\nDEALHAUS MULTI-PLATFORM SELLER AGENT RUNNER");
 console.log("------------------------------------");
 console.log(
   RUN_ONCE
