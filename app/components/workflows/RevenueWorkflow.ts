@@ -1,4 +1,5 @@
-import { supabase } from "@/lib/supabase";
+﻿import { supabase as defaultSupabase } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type RevenueSource = {
   inventoryItemId: number;
@@ -14,7 +15,8 @@ type RevenueSource = {
 async function recordException(
   exceptionType: string,
   source: RevenueSource,
-  notes: string
+  notes: string,
+  supabase: SupabaseClient
 ) {
   const { data: existingException } = await supabase
     .from("exception_tasks")
@@ -39,7 +41,7 @@ async function recordException(
   });
 }
 
-async function createRevenueRecord(source: RevenueSource) {
+async function createRevenueRecord(source: RevenueSource, supabase: SupabaseClient) {
   const { data: existingRevenueRecords, error: existingError } =
     await supabase
       .from("revenue_records")
@@ -79,7 +81,8 @@ async function createRevenueRecord(source: RevenueSource) {
     await recordException(
       "workflow_revenue_creation_failed",
       source,
-      revenueError.message
+      revenueError.message,
+      supabase
     );
 
     return {
@@ -96,7 +99,7 @@ async function createRevenueRecord(source: RevenueSource) {
   };
 }
 
-async function closeInventory(source: RevenueSource) {
+async function closeInventory(source: RevenueSource, supabase: SupabaseClient) {
   const { error } = await supabase
     .from("inventory")
     .update({ status: "closed" })
@@ -106,7 +109,8 @@ async function closeInventory(source: RevenueSource) {
     await recordException(
       "workflow_inventory_close_failed_after_revenue",
       source,
-      error.message
+      error.message,
+      supabase
     );
 
     return false;
@@ -115,7 +119,7 @@ async function closeInventory(source: RevenueSource) {
   return true;
 }
 
-export async function runRevenueWorkflow() {
+export async function runRevenueWorkflow(supabase: SupabaseClient = defaultSupabase) {
   let revenueCreated = 0;
   let revenueExisting = 0;
   let revenueErrors = 0;
@@ -141,8 +145,8 @@ export async function runRevenueWorkflow() {
       payment_status,
       transaction_status
     `)
-    .eq("transaction_status", "closed")
     .eq("payment_status", "paid")
+    .neq("transaction_status", "closed")
     .limit(100);
 
   if (closedTransactionsError) {
@@ -180,7 +184,7 @@ export async function runRevenueWorkflow() {
         relatedRecordId: transaction.id,
       };
 
-      const result = await createRevenueRecord(source);
+      const result = await createRevenueRecord(source, supabase);
 
       if (result.error) {
         revenueErrors += 1;
@@ -207,7 +211,8 @@ export async function runRevenueWorkflow() {
           await recordException(
             "workflow_marketplace_sold_sync_failed",
             source,
-            publishError.message
+            publishError.message,
+            supabase
           );
         }
       } else {
@@ -222,15 +227,38 @@ export async function runRevenueWorkflow() {
           await recordException(
             "workflow_marketplace_sold_sync_failed",
             source,
-            publishError.message
+            publishError.message,
+            supabase
           );
         }
       }
 
-      const inventoryClosed = await closeInventory(source);
+      const inventoryClosed = await closeInventory(source, supabase);
 
       if (!inventoryClosed) {
         revenueErrors += 1;
+        continue;
+      }
+
+      const { error: transactionCloseError } = await supabase
+        .from("brokerage_transactions")
+        .update({
+          transaction_status: "closed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", transaction.id)
+        .eq("payment_status", "paid")
+        .neq("transaction_status", "closed");
+
+      if (transactionCloseError) {
+        revenueErrors += 1;
+
+        await recordException(
+          "workflow_transaction_close_failed_after_revenue",
+          source,
+          transactionCloseError.message,
+          supabase
+        );
       }
     }
   }
@@ -278,7 +306,7 @@ export async function runRevenueWorkflow() {
         relatedRecordId: task.id,
       };
 
-      const result = await createRevenueRecord(source);
+      const result = await createRevenueRecord(source, supabase);
 
       if (result.error) {
         revenueErrors += 1;
@@ -293,7 +321,7 @@ export async function runRevenueWorkflow() {
         revenueCreated += 1;
       }
 
-      const inventoryClosed = await closeInventory(source);
+      const inventoryClosed = await closeInventory(source, supabase);
 
       if (!inventoryClosed) {
         revenueErrors += 1;
@@ -307,3 +335,11 @@ export async function runRevenueWorkflow() {
     revenueErrors,
   };
 }
+
+
+
+
+
+
+
+

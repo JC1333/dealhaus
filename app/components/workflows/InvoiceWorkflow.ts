@@ -1,4 +1,5 @@
-import { supabase } from "@/lib/supabase";
+﻿import { supabase as defaultSupabase } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type BrokerageTransaction = {
   id: string;
@@ -173,7 +174,7 @@ function createPaymentCard({
   `;
 }
 
-export async function runInvoiceWorkflow() {
+export async function runInvoiceWorkflow(supabase: SupabaseClient = defaultSupabase) {
   let invoicesSent = 0;
   let invoicesExisting = 0;
   let invoiceErrors = 0;
@@ -235,7 +236,8 @@ export async function runInvoiceWorkflow() {
 
       await createInvoiceException(
         transaction,
-        "Seller email is missing. Invoice could not be sent."
+        "Seller email is missing. Invoice could not be sent.",
+        supabase
       );
 
       continue;
@@ -340,7 +342,7 @@ export async function runInvoiceWorkflow() {
         accountLabel: PAYMENT_DETAILS.zelleName,
         accountValue: PAYMENT_DETAILS.zellePhone,
         instructions:
-          "Open your bank’s Zelle service and send the commission using the recipient name and payment number shown.",
+          "Open your bankâ€™s Zelle service and send the commission using the recipient name and payment number shown.",
       }),
       createPaymentCard({
         method: "Apple Pay",
@@ -881,7 +883,7 @@ export async function runInvoiceWorkflow() {
                     font-size:12px;
                   "
                 >
-                  Helping You Sell Smarter · Built on Integrity
+                  Helping You Sell Smarter Â· Built on Integrity
                 </div>
               </td>
             </tr>
@@ -894,7 +896,16 @@ export async function runInvoiceWorkflow() {
 </html>`;
 
     try {
-      const response = await fetch("/api/send-email", {
+      const baseUrl =
+        typeof window !== "undefined"
+          ? ""
+          : process.env.NEXT_PUBLIC_SITE_URL
+            ? process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")
+            : process.env.VERCEL_URL
+              ? `https://${process.env.VERCEL_URL}`
+              : "https://dealhaus.us";
+
+      const response = await fetch(`${baseUrl}/api/send-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -913,10 +924,11 @@ export async function runInvoiceWorkflow() {
         invoiceErrors += 1;
 
         await createInvoiceException(
-          transaction,
-          responseData?.error ||
-            "Invoice email request failed."
-        );
+        transaction,
+        responseData?.error ||
+            "Invoice email request failed.",
+        supabase
+      );
 
         continue;
       }
@@ -932,9 +944,10 @@ export async function runInvoiceWorkflow() {
         invoiceErrors += 1;
 
         await createInvoiceException(
-          transaction,
-          `Invoice email sent, but invoice status failed to update: ${updateError.message}`
-        );
+        transaction,
+        `Invoice email sent, but invoice status failed to update: ${updateError.message}`,
+        supabase
+      );
 
         continue;
       }
@@ -950,7 +963,8 @@ export async function runInvoiceWorkflow() {
 
       await createInvoiceException(
         transaction,
-        errorMessage
+        errorMessage,
+        supabase
       );
     }
   }
@@ -964,7 +978,8 @@ export async function runInvoiceWorkflow() {
 
 async function createInvoiceException(
   transaction: BrokerageTransaction,
-  notes: string
+  notes: string,
+  supabase: SupabaseClient
 ) {
   const { data: existingException } = await supabase
     .from("exception_tasks")
@@ -998,3 +1013,5 @@ async function createInvoiceException(
     notes,
   });
 }
+
+

@@ -178,6 +178,20 @@ async function runMasterSweep() {
         "closing-completion-finalizer-runner.cjs"
       )
     );
+
+    results.push(
+      runAgentSafely(
+        "INVOICE WORKFLOW",
+        "invoice-workflow-runner.cjs"
+      )
+    );
+
+    results.push(
+      runAgentSafely(
+        "REVENUE WORKFLOW",
+        "revenue-workflow-runner.cjs"
+      )
+    );
     console.log("\n######################################");
     console.log("MASTER FACEBOOK SWEEP SUMMARY");
     console.log("######################################");
@@ -226,4 +240,6 @@ runMasterSweep();
 setInterval(() => {
   runMasterSweep();
 }, CHECK_INTERVAL_MS);
+
+
 

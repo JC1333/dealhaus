@@ -1,4 +1,4 @@
-import { runSellerWorkflow } from "./SellerWorkflow";
+﻿import { runSellerWorkflow } from "./SellerWorkflow";
 import { runRelistWorkflow } from "./RelistWorkflow";
 import { runBuyerWorkflow } from "./BuyerWorkflow";
 import { runNegotiationWorkflow } from "./NegotiationWorkflow";
@@ -27,13 +27,13 @@ export async function runFullWorkflow() {
   const marketplaceWorkflow = await runMarketplaceWorkflow();
   console.log("WORKFLOW COMPLETE: Marketplace");
 
-  console.log("WORKFLOW START: Revenue");
-  const revenueWorkflow = await runRevenueWorkflow();
-  console.log("WORKFLOW COMPLETE: Revenue");
-
   console.log("WORKFLOW START: Invoice");
   const invoiceWorkflow = await runInvoiceWorkflow();
   console.log("WORKFLOW COMPLETE: Invoice");
+
+  console.log("WORKFLOW START: Revenue");
+  const revenueWorkflow = await runRevenueWorkflow();
+  console.log("WORKFLOW COMPLETE: Revenue");
 
   const totalErrors =
     sellerWorkflow.errors +
