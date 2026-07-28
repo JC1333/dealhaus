@@ -95,7 +95,19 @@ export default function SubmitPage() {
         uploadedPhotoUrls.push(data.publicUrl);
       }
     }
+const marketplaceUrl = form.marketplaceUrl.trim();
 
+let marketplacePlatform = "DealHaus Public Website";
+
+if (/craigslist\.org/i.test(marketplaceUrl)) {
+  marketplacePlatform = "Craigslist";
+} else if (/offerup\.com/i.test(marketplaceUrl)) {
+  marketplacePlatform = "OfferUp";
+} else if (/facebook\.com/i.test(marketplaceUrl)) {
+  marketplacePlatform = "Facebook Marketplace";
+} else if (marketplaceUrl) {
+  marketplacePlatform = "Existing Marketplace Listing";
+}
     const { error } = await supabase.from("seller_leads").insert({
       seller_name: form.name,
       seller_email: form.email,
@@ -108,9 +120,8 @@ export default function SubmitPage() {
       seller_city: form.city,
       seller_state: form.state,
       photo_urls: uploadedPhotoUrls,
-      platform: form.marketplaceUrl
-        ? "Existing Marketplace Listing"
-        : "DealHaus Public Website",
+      platform: marketplacePlatform,
+      marketplace_listing_url: marketplaceUrl || null,
       status: "new",
       lead_status: "new",
       lead_source: "Public Seller Submission",
@@ -509,7 +520,7 @@ export default function SubmitPage() {
 
                 <input
                   className="mt-4 w-full rounded-xl border border-zinc-700 bg-black p-4 text-white"
-                  placeholder="Marketplace URL optional"
+                  placeholder="Facebook Marketplace, OfferUp, or Craigslist URL (optional)"
                   value={form.marketplaceUrl}
                   onChange={(event) =>
                     updateField("marketplaceUrl", event.target.value)
