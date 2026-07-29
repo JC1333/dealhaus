@@ -424,35 +424,65 @@ await page.goto(
   }
 ).catch(() => {});
 
-const listingCard = page
-  .locator(`[role="button"][aria-label="${item.title}"]`)
-  .first();
+const exactListingCards = page.locator(
+  `[role="button"][aria-label="${item.title}"]`
+);
 
-await listingCard.waitFor({
+await exactListingCards.first().waitFor({
   state: "visible",
   timeout: 60000,
 });
 
-const listingCardText = await listingCard
-  .innerText()
-  .catch(() => "");
+let listingCard = null;
+let listingCardText = "";
 
-const normalizedListingCardText =
-  listingCardText.toLowerCase();
-
-if (
-  !normalizedListingCardText.includes(
-    "listed on marketplace"
-  ) ||
-  !(
-    normalizedListingCardText.includes("active") ||
-    normalizedListingCardText.includes("in stock")
-  )
+for (
+  let i = 0;
+  i < await exactListingCards.count();
+  i++
 ) {
+  const candidate = exactListingCards.nth(i);
+
+  const candidateText = await candidate
+    .innerText()
+    .catch(() => "");
+
+  const parentText = await candidate
+    .locator("xpath=..")
+    .innerText()
+    .catch(() => "");
+
+  const combinedText =
+    `${candidateText}\n${parentText}`.trim();
+
+  const normalizedText =
+    combinedText.toLowerCase();
+
+  if (
+    normalizedText.includes(
+      "listed on marketplace"
+    ) &&
+    (
+      normalizedText.includes("active") ||
+      normalizedText.includes("in stock")
+    )
+  ) {
+    listingCard = candidate;
+    listingCardText = combinedText;
+    break;
+  }
+}
+
+if (!listingCard) {
   throw new Error(
-    "Facebook listing card was found, but external published status could not be verified."
+    "Exact Facebook listing was found, but no matching card showed published status."
   );
 }
+
+console.log(
+  "\nPOST-PUBLISH LISTING CARD TEXT:\n",
+  listingCardText
+);
 
 console.log(
   "VERIFIED: Exact listing appears in Facebook Your Listings."
