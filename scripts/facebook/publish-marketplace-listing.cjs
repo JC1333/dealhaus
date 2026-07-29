@@ -424,64 +424,79 @@ await page.goto(
   }
 ).catch(() => {});
 
-const exactListingCards = page.locator(
-  `[role="button"][aria-label="${item.title}"]`
-);
-
-await exactListingCards.first().waitFor({
-  state: "visible",
-  timeout: 60000,
-});
-
 let listingCard = null;
 let listingCardText = "";
 
-for (
-  let i = 0;
-  i < await exactListingCards.count();
-  i++
-) {
-  const candidate = exactListingCards.nth(i);
+for (let verifyAttempt = 1; verifyAttempt <= 12; verifyAttempt++) {
+  console.log(
+    `POST-PUBLISH VERIFICATION ATTEMPT ${verifyAttempt}/12`
+  );
 
-  for (let level = 0; level <= 6; level++) {
-    let node = candidate;
+  const exactListingCards = page.locator(
+    `[role="button"][aria-label="${item.title}"]`
+  );
 
-    if (level > 0) {
-      node = candidate.locator(
-        "xpath=" + "/..".repeat(level)
-      );
+  const cardCount = await exactListingCards.count();
+
+  console.log(
+    `Exact listing elements found: ${cardCount}`
+  );
+
+  for (let i = 0; i < cardCount; i++) {
+    const candidate = exactListingCards.nth(i);
+
+    for (let level = 0; level <= 6; level++) {
+      let node = candidate;
+
+      if (level > 0) {
+        node = candidate.locator(
+          "xpath=" + "/..".repeat(level)
+        );
+      }
+
+      const combinedText = await node
+        .innerText()
+        .catch(() => "");
+
+      const normalizedText =
+        combinedText.toLowerCase();
+
+      if (
+        normalizedText.includes(
+          "listed on marketplace"
+        ) &&
+        (
+          normalizedText.includes("active") ||
+          normalizedText.includes("in stock")
+        )
+      ) {
+        listingCard = candidate;
+        listingCardText = combinedText;
+
+        console.log(
+          `POST-PUBLISH STATUS FOUND AT MATCH ${i}, ANCESTOR LEVEL ${level}`
+        );
+
+        break;
+      }
     }
 
-    const combinedText = await node
-      .innerText()
-      .catch(() => "");
-
-    const normalizedText =
-      combinedText.toLowerCase();
-
-    if (
-      normalizedText.includes(
-        "listed on marketplace"
-      ) &&
-      (
-        normalizedText.includes("active") ||
-        normalizedText.includes("in stock")
-      )
-    ) {
-      listingCard = candidate;
-      listingCardText = combinedText;
-
-      console.log(
-        `POST-PUBLISH STATUS FOUND AT MATCH ${i}, ANCESTOR LEVEL ${level}`
-      );
-
+    if (listingCard) {
       break;
     }
   }
 
-if (listingCard) {
-  break;
-}
+  if (listingCard) {
+    break;
+  }
+
+  if (verifyAttempt < 12) {
+    console.log(
+      "Facebook listing status not hydrated yet. Waiting 5 seconds..."
+    );
+
+    await page.waitForTimeout(5000);
+  }
 }
 
 if (!listingCard) {
