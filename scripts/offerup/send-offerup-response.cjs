@@ -116,7 +116,20 @@ function normalizeText(value) {
         break;
       }
     }
+const normalizedOutreach =
+  normalizeText(lead.outreach_message || "");
 
+if (
+  !normalizedOutreach ||
+  !chatMessages.some(
+    (message) =>
+      normalizeText(message) === normalizedOutreach
+  )
+) {
+  throw new Error(
+    "Exact DealHaus outreach could not be verified in the reopened OfferUp thread. No response sent."
+  );
+}
     const normalizedResponse =
       normalizeText(RESPONSE_TEXT);
 

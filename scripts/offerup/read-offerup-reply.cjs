@@ -28,7 +28,7 @@ function normalizeText(value) {
   const { data: lead, error: leadError } = await supabase
     .from("seller_leads")
     .select(
-      "id,item_title,seller_name,marketplace_listing_url,outreach_message,outreach_status,platform"
+      "id,item_title,seller_name,marketplace_listing_url,outreach_message,outreach_status,platform,outreach_notes"
     )
     .eq("id", LEAD_ID)
     .single();
@@ -222,7 +222,18 @@ function normalizeText(value) {
               messagesAfterOutreach.length - 1
             ].text
           );
+const processedReplyMarker =
+  `OfferUp seller reply: ${newestSellerMessage}`;
 
+if (
+  typeof lead.outreach_notes === "string" &&
+  lead.outreach_notes.includes(processedReplyMarker)
+) {
+  console.log(
+    "DUPLICATE OFFERUP SELLER REPLY BLOCKED"
+  );
+  return;
+}
     if (SIMULATED_REPLY) {
       console.log(
         "CONTROLLED OFFERUP SELLER REPLY SIMULATION ACTIVE"
@@ -354,6 +365,30 @@ function normalizeText(value) {
     console.log(
       SIMULATED_REPLY ? "OFFERUP AI RESPONSE PATH VERIFIED IN DRY RUN - NOTHING SENT" : "OFFERUP AI RESPONSE SENT AND VERIFIED"
     );
+    if (!SIMULATED_REPLY) {
+  const updatedOutreachNotes = [
+    lead.outreach_notes,
+    processedReplyMarker,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const { error: processedReplyError } =
+    await supabase
+      .from("seller_leads")
+      .update({
+        outreach_notes: updatedOutreachNotes,
+      })
+      .eq("id", LEAD_ID);
+
+  if (processedReplyError) {
+    throw processedReplyError;
+  }
+
+  console.log(
+    "OFFERUP SELLER REPLY MARKED PROCESSED"
+  );
+}
   } finally {
     await context.close();
   }

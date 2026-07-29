@@ -33,6 +33,7 @@ async function runSellerSweep() {
       .from("seller_leads")
       .select("id,item_title,platform,lead_source,marketplace_listing_url,outreach_status,status")
       .eq("outreach_status", "contacted")
+      .eq("status", "approved_for_outreach")
       .order("created_at", { ascending: true });
 
     if (error) {

@@ -157,6 +157,27 @@ if (
 ) {
   throw new Error("AI decision missing response");
 }
+if (decision.needs_human_review === true) {
+  const { error: reviewError } = await supabase
+    .from("seller_leads")
+    .update({
+      status: "needs_review",
+      outreach_status: "follow_up_needed",
+      outreach_notes:
+        `${lead.platform || "Marketplace"} seller reply needs human review: ${sellerMessage}`,
+    })
+    .eq("id", LEAD_ID);
+
+  if (reviewError) {
+    throw reviewError;
+  }
+
+  console.log(
+    "\nSELLER REPLY FLAGGED FOR HUMAN REVIEW"
+  );
+
+  return decision;
+}
 
 console.log("\nSELLER MESSAGE:");
   console.log(sellerMessage);

@@ -1123,7 +1123,7 @@ if (decision.ready_for_negotiation === true) {
   const { data: existingNegotiations, error: negotiationLookupError } =
     await supabase
       .from("negotiation_tasks")
-      .select("id")
+      .select("id,negotiation_status")
       .eq("inventory_item_id", publishedTask.inventory_item_id)
       .eq("buyer_name", buyerName)
       .limit(1);
