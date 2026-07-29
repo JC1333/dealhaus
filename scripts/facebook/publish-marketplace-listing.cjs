@@ -201,9 +201,34 @@ console.log(bodyText.slice(0, 4000));
 
 const fileInputs = page.locator('input[type="file"]');
 
-if (photoPaths.length > 0 && (await fileInputs.count()) > 0) {
+if (photoPaths.length > 0) {
+  let fileInputCount = 0;
+
+  for (let attempt = 1; attempt <= 15; attempt++) {
+    fileInputCount = await fileInputs.count();
+
+    console.log(
+      `WAITING FOR FACEBOOK PHOTO INPUT ${attempt}/15: ${fileInputCount}`
+    );
+
+    if (fileInputCount > 0) {
+      break;
+    }
+
+    await page.waitForTimeout(1000);
+  }
+
+  if (fileInputCount < 1) {
+    throw new Error(
+      "Facebook photo input was not found after waiting for the listing form to load"
+    );
+  }
+
   await fileInputs.first().setInputFiles(photoPaths);
-  console.log(`Uploaded ${photoPaths.length} photo(s).`);
+
+  console.log(
+    `Uploaded ${photoPaths.length} photo(s).`
+  );
 }
 
 const textInputs = page.locator('input[type="text"]');
@@ -389,11 +414,107 @@ console.log("\n--- AFTER PUBLISH PAGE ---\n");
 console.log(afterPublishBody.slice(0, 10000));
 
 console.log("\nREAL PUBLISH ACTION COMPLETE");
+console.log("Starting external Facebook verification...");
+
+await page.goto(
+  "https://www.facebook.com/marketplace/you/selling",
+  {
+    waitUntil: "commit",
+    timeout: 30000,
+  }
+).catch(() => {});
+
+const listingCard = page
+  .locator(`[role="button"][aria-label="${item.title}"]`)
+  .first();
+
+await listingCard.waitFor({
+  state: "visible",
+  timeout: 60000,
+});
+
+const listingCardText = await listingCard
+  .innerText()
+  .catch(() => "");
+
+const normalizedListingCardText =
+  listingCardText.toLowerCase();
+
+if (
+  !normalizedListingCardText.includes(
+    "listed on marketplace"
+  ) ||
+  !(
+    normalizedListingCardText.includes("active") ||
+    normalizedListingCardText.includes("in stock")
+  )
+) {
+  throw new Error(
+    "Facebook listing card was found, but external published status could not be verified."
+  );
+}
+
 console.log(
-  "DealHaus database has NOT been marked published yet. External verification comes next."
+  "VERIFIED: Exact listing appears in Facebook Your Listings."
 );
 
-await new Promise(() => {});
+await listingCard.click({
+  timeout: 15000,
+  force: true,
+});
+
+await page.waitForTimeout(3000);
+
+const editListingLink = page
+  .locator('a[aria-label="Edit Listing"]')
+  .first();
+
+await editListingLink.waitFor({
+  state: "visible",
+  timeout: 15000,
+});
+
+const editHref =
+  await editListingLink.getAttribute("href");
+
+const listingIdMatch =
+  String(editHref || "").match(
+    /[?&]listing_id=(\d+)/
+  );
+
+if (!listingIdMatch) {
+  throw new Error(
+    "Facebook listing was verified, but listing_id could not be extracted."
+  );
+}
+
+const facebookUrl =
+  `https://www.facebook.com/marketplace/item/${listingIdMatch[1]}/`;
+
+console.log(
+  "VERIFIED FACEBOOK LISTING URL:",
+  facebookUrl
+);
+
+const { error: publishUpdateError } =
+  await supabase
+    .from("marketplace_publish_tasks")
+    .update({
+      facebook_url: facebookUrl,
+      publish_status: "published",
+    })
+    .eq("inventory_item_id", item.id)
+    .eq("publish_status", "ready_to_publish");
+
+if (publishUpdateError) {
+  throw publishUpdateError;
+}
+
+console.log(
+  "DEALHAUS DATABASE UPDATED: FACEBOOK LISTING PUBLISHED"
+);
+
+await context.close();
 })().catch((error) => {
   console.error("\nFACEBOOK PUBLISHER FAILED:", error.message);
   process.exit(1);
