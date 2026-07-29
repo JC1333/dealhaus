@@ -257,13 +257,39 @@ if ((await combos.count()) < 3) {
 await combos.nth(1).click();
 await page.waitForTimeout(1000);
 
-const furnitureOption = page.getByText("Furniture", {
-  exact: true,
-}).last();
+let categorySelected = false;
 
-await furnitureOption.click({ timeout: 10000 });
+for (let attempt = 1; attempt <= 10; attempt++) {
+  const furnitureOption = page.getByText("Furniture", {
+    exact: true,
+  }).last();
 
-console.log("Category selected: Furniture");
+  try {
+    await furnitureOption.click({
+      timeout: 3000,
+    });
+
+    categorySelected = true;
+
+    console.log(
+      `Category selected: Furniture (${attempt}/10)`
+    );
+
+    break;
+  } catch (error) {
+    console.log(
+      `WAITING FOR STABLE FACEBOOK CATEGORY OPTION ${attempt}/10`
+    );
+
+    await page.waitForTimeout(1000);
+  }
+}
+
+if (!categorySelected) {
+  throw new Error(
+    "Facebook Furniture category option did not become stable enough to select"
+  );
+}
 
 await page.waitForTimeout(1000);
 
