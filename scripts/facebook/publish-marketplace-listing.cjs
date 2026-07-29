@@ -6,6 +6,8 @@ const https = require("https");
 const http = require("http");
 
 const INVENTORY_ID = Number(process.argv[2]);
+const DRY_RUN =
+  String(process.env.DEALHAUS_DRY_RUN || "").toLowerCase() === "true";
 
 if (!INVENTORY_ID) {
   console.error(
@@ -206,8 +208,26 @@ if (photoPaths.length > 0 && (await fileInputs.count()) > 0) {
 
 const textInputs = page.locator('input[type="text"]');
 
-if ((await textInputs.count()) < 2) {
-  throw new Error("Facebook title/price fields were not found");
+let textInputCount = 0;
+
+for (let attempt = 1; attempt <= 15; attempt++) {
+  textInputCount = await textInputs.count();
+
+  console.log(
+    `WAITING FOR FACEBOOK TITLE/PRICE FIELDS ${attempt}/15: ${textInputCount}`
+  );
+
+  if (textInputCount >= 2) {
+    break;
+  }
+
+  await page.waitForTimeout(1000);
+}
+
+if (textInputCount < 2) {
+  throw new Error(
+    "Facebook title/price fields were not found after waiting for the listing form to load"
+  );
 }
 
 const titleInput = textInputs.nth(0);
@@ -299,7 +319,24 @@ console.log("\nREADY TO PUBLISH REAL FACEBOOK LISTING");
 const publishButton = page.getByText("Publish", {
   exact: true,
 }).last();
+if (DRY_RUN) {
+  const publishVisible = await publishButton
+    .isVisible()
+    .catch(() => false);
 
+  if (!publishVisible) {
+    throw new Error(
+      "Dry run reached final screen, but Publish button was not visible."
+    );
+  }
+
+  console.log("\nFACEBOOK PUBLISH DRY RUN VERIFIED");
+  console.log("Final Publish screen reached.");
+  console.log("Publish button is visible.");
+  console.log("NO FACEBOOK LISTING WAS PUBLISHED.");
+
+  return;
+}
 await publishButton.click({ timeout: 15000 });
 
 console.log("Clicked Publish.");
