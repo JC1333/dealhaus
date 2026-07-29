@@ -96,6 +96,13 @@ async function runMasterSweep() {
       )
     );
 
+results.push(
+  runAgentSafely(
+    "MARKETPLACE PUBLISH SWEEP",
+    "marketplace-publish-runner.cjs"
+  )
+);
+
     results.push(
       runAgentSafely(
         "BUYER AGENT SWEEP",
