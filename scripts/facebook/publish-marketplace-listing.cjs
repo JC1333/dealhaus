@@ -443,34 +443,45 @@ for (
 ) {
   const candidate = exactListingCards.nth(i);
 
-  const candidateText = await candidate
-    .innerText()
-    .catch(() => "");
+  for (let level = 0; level <= 6; level++) {
+    let node = candidate;
 
-  const parentText = await candidate
-    .locator("xpath=..")
-    .innerText()
-    .catch(() => "");
+    if (level > 0) {
+      node = candidate.locator(
+        "xpath=" + "/..".repeat(level)
+      );
+    }
 
-  const combinedText =
-    `${candidateText}\n${parentText}`.trim();
+    const combinedText = await node
+      .innerText()
+      .catch(() => "");
 
-  const normalizedText =
-    combinedText.toLowerCase();
+    const normalizedText =
+      combinedText.toLowerCase();
 
-  if (
-    normalizedText.includes(
-      "listed on marketplace"
-    ) &&
-    (
-      normalizedText.includes("active") ||
-      normalizedText.includes("in stock")
-    )
-  ) {
-    listingCard = candidate;
-    listingCardText = combinedText;
-    break;
+    if (
+      normalizedText.includes(
+        "listed on marketplace"
+      ) &&
+      (
+        normalizedText.includes("active") ||
+        normalizedText.includes("in stock")
+      )
+    ) {
+      listingCard = candidate;
+      listingCardText = combinedText;
+
+      console.log(
+        `POST-PUBLISH STATUS FOUND AT MATCH ${i}, ANCESTOR LEVEL ${level}`
+      );
+
+      break;
+    }
   }
+
+if (listingCard) {
+  break;
+}
 }
 
 if (!listingCard) {
