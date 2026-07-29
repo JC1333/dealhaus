@@ -7,7 +7,7 @@ export async function runRelistWorkflow() {
 
   const { data: readyPrepTasks, error: prepError } = await supabase
     .from("listing_prep_tasks")
-    .select("id")
+    .select("id,seller_lead_id")
     .eq("prep_status", "ready_for_relist")
     .limit(100);
 
@@ -18,6 +18,30 @@ export async function runRelistWorkflow() {
 
   if (readyPrepTasks && readyPrepTasks.length > 0) {
     for (const task of readyPrepTasks) {
+            if (!task.seller_lead_id) {
+        relistErrors += 1;
+        continue;
+      }
+
+      const { data: sellerLead, error: sellerLeadError } =
+        await supabase
+          .from("seller_leads")
+          .select("status,approval_status,agreement_accepted")
+          .eq("id", task.seller_lead_id)
+          .single();
+
+      if (
+        sellerLeadError ||
+        !sellerLead ||
+        sellerLead.approval_status !== "approved" ||
+        sellerLead.agreement_accepted !== true ||
+        sellerLead.status !== "sent_to_relist_queue"
+      ) {
+        console.log(
+          `SKIPPED RELIST TASK ${task.id}: seller is not currently authorized for relisting`
+        );
+        continue;
+      }
       const { data: existingRelistTasks } = await supabase
   .from("ai_relist_tasks")
   .select("id")
