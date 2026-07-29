@@ -73,23 +73,39 @@ function normalizeText(value) {
       timeout: 60000,
     });
 
-    await page.waitForTimeout(5000);
+    let name = null;
 
-    const name = page
-      .getByText(lead.seller_name, {
-        exact: true,
-      })
-      .first();
+for (let attempt = 1; attempt <= 15; attempt++) {
+  await page.waitForTimeout(1000);
 
-    if (
-      !(await name
-        .isVisible()
-        .catch(() => false))
-    ) {
-      throw new Error(
-        `Exact OfferUp inbox row for seller "${lead.seller_name}" was not found.`
-      );
-    }
+  const candidate = page
+    .getByText(lead.seller_name, {
+      exact: true,
+    })
+    .first();
+
+  if (
+    await candidate
+      .isVisible()
+      .catch(() => false)
+  ) {
+    name = candidate;
+    console.log(
+      `OFFERUP SELLER ROW FOUND ${attempt}/15`
+    );
+    break;
+  }
+
+  console.log(
+    `WAITING FOR OFFERUP SELLER ROW ${attempt}/15`
+  );
+}
+
+if (!name) {
+  throw new Error(
+    `Exact OfferUp inbox row for seller "${lead.seller_name}" was not found.`
+  );
+}
 
     const row = name.locator(
       'xpath=ancestor::div[@role="button"][1]'
