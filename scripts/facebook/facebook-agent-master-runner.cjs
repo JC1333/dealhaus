@@ -1,7 +1,44 @@
-﻿const { spawnSync } = require("child_process");
+const { spawnSync } = require("child_process");
 const path = require("path");
 
+process.loadEnvFile(path.resolve(process.cwd(), ".env.local"));
+
 const CHECK_INTERVAL_MS = 60 * 1000;
+
+async function runServerWorkflow() {
+  const baseUrl =
+    process.env.DEALHAUS_BASE_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "http://localhost:3000";
+
+  const secret = process.env.WORKFLOW_RUNNER_SECRET;
+
+  if (!secret) {
+    throw new Error("WORKFLOW_RUNNER_SECRET is missing.");
+  }
+
+  const response = await fetch(
+    `${baseUrl.replace(/\/$/, "")}/api/run-full-workflow`,
+    {
+      method: "POST",
+      headers: {
+        "x-workflow-secret": secret,
+      },
+      signal: AbortSignal.timeout(180000),
+    }
+  );
+
+  const body = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `Server workflow failed with ${response.status}: ${body}`
+    );
+  }
+
+  console.log("SERVER BUSINESS WORKFLOW RESPONSE:");
+  console.log(body);
+}
 
 let running = false;
 
@@ -88,6 +125,37 @@ async function runMasterSweep() {
 
   try {
     const results = [];
+
+    try {
+      console.log("\n======================================");
+      console.log("STARTING SERVER BUSINESS WORKFLOW");
+      console.log(new Date().toLocaleString());
+      console.log("======================================");
+
+      await runServerWorkflow();
+
+      results.push({
+        label: "SERVER BUSINESS WORKFLOW",
+        status: "success",
+      });
+
+      console.log("\nSERVER BUSINESS WORKFLOW COMPLETE");
+    } catch (error) {
+      console.error(
+        "\nSERVER BUSINESS WORKFLOW ERROR:",
+        error.message
+      );
+
+      results.push({
+        label: "SERVER BUSINESS WORKFLOW",
+        status: "failed",
+        error: error.message,
+      });
+
+      console.log(
+        "Master sweep will continue to the next independent stage."
+      );
+    }
 
     results.push(
       runAgentSafely(
@@ -247,6 +315,7 @@ runMasterSweep();
 setInterval(() => {
   runMasterSweep();
 }, CHECK_INTERVAL_MS);
+
 
 
 

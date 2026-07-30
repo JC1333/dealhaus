@@ -60,36 +60,66 @@ export async function POST(req: Request) {
     const askingPrice =
       Number(task.asking_price || prepTask?.asking_price || sellerLead?.asking_price || 0);
 
+    const internalNotes = String(sellerLead?.acquisition_reason || "");
+
+    const sourceDescription =
+      String(sellerLead?.item_description || "").trim() ||
+      internalNotes.match(/Description:\s*(.*?)(?=\.\s+Photos:|$)/i)?.[1]?.trim() ||
+      sourceTitle;
+
+    const sourceCategory =
+      String(sellerLead?.category || "").trim() ||
+      internalNotes.match(/Category:\s*(.*?)(?=\.\s+Condition:|$)/i)?.[1]?.trim() ||
+      "Marketplace";
+
+    const sourceCondition =
+      String(sellerLead?.condition || "").trim() ||
+      internalNotes.match(/Condition:\s*(.*?)(?=\.\s+Marketplace URL:|$)/i)?.[1]?.trim() ||
+      "Used - Good";
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
+      response_format: {
+        type: "json_object",
+      },
       messages: [
+        {
+          role: "system",
+          content:
+            "Write accurate, natural Facebook Marketplace listings. Never expose private seller information or internal DealHaus business information.",
+        },
         {
           role: "user",
           content: `
-Create a marketplace-ready listing for DealHaus.
+Create a Facebook Marketplace listing using only these public item details.
 
-Item: ${sourceTitle}
-Seller: ${sellerName}
+Original title: ${sourceTitle}
+Item description: ${sourceDescription}
 Seller asking price: ${askingPrice}
-Notes: ${sellerLead?.acquisition_reason || sellerLead?.item_description || ""}
+Category: ${sourceCategory}
+Condition: ${sourceCondition}
 
-Return ONLY valid JSON with:
+Return only valid JSON:
 {
   "ai_title": "",
   "ai_description": "",
-  "ai_price_recommendation": number
+  "ai_price_recommendation": 0
 }
 
 Rules:
-- Title should be professional and searchable.
-- Description should be persuasive but honest.
-- Do not mention AI.
-- Do not make unsupported claims.
-- Price recommendation should be realistic for resale.
+- Keep the item identity and seller-provided condition accurate.
+- Write naturally, clearly, and concisely.
+- Do not invent features, measurements, accessories, delivery, warranty, authenticity, age, or condition details.
+- Do not mention the seller's name.
+- Do not mention DealHaus.
+- Do not mention commissions, fees, agreements, payouts, or brokerage terms.
+- Do not mention email, phone, contact preference, ZIP code, internal notes, database details, or photo URLs.
+- Do not describe the item as new unless the supplied condition explicitly says it is new.
+- Keep the recommended price reasonably close to the seller's asking price.
 `,
         },
       ],
-      temperature: 0.5,
+      temperature: 0.3,
     });
 
     const text = completion.choices[0]?.message?.content || "{}";
@@ -99,9 +129,7 @@ Rules:
     const aiTitle = generated.ai_title || sourceTitle;
     const aiDescription =
       generated.ai_description ||
-      sellerLead?.acquisition_reason ||
-      sellerLead?.item_description ||
-      "Marketplace listing prepared by DealHaus.";
+      sourceDescription;
 
     const aiPrice = Number(generated.ai_price_recommendation || askingPrice || 0);
 

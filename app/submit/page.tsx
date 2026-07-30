@@ -117,6 +117,8 @@ if (/craigslist\.org/i.test(marketplaceUrl)) {
       item_description: form.description,
       asking_price: Number(form.askingPrice || 0),
       commission_rate: 10,
+      approval_status: "approved",
+      agreement_accepted: true,
       seller_city: form.city,
       seller_state: form.state,
       photo_urls: uploadedPhotoUrls,
@@ -540,11 +542,10 @@ if (/craigslist\.org/i.test(marketplaceUrl)) {
                   />
 
                   <span>
-                    I agree to DealHaus’ fee structure and authorize DealHaus
-                    to contact me regarding my submission using my selected
-                    preferred contact method. DealHaus charges a 10%
-                    success-based commission on the final sale price. No
-                    upfront fees.
+                    I authorize DealHaus to contact me and to prepare, rewrite,
+                    create, and publish marketplace listings for this item.
+                    I agree to DealHaus' 10% success-based commission on the
+                    final sale price. There are no upfront fees.
                   </span>
                 </label>
               </FormSection>
