@@ -508,6 +508,31 @@ async function verifyExactResponseInThread(
       sellerMessages[
         sellerMessages.length - 1
       ];
+      const newestSellerThreadIndex =
+  threadMessages.findLastIndex(
+    (message) =>
+      message.aria === newestSellerMessage.aria
+  );
+
+if (newestSellerThreadIndex === -1) {
+  throw new Error(
+    "Newest seller reply could not be anchored inside the exact verified thread."
+  );
+}
+
+const alreadyRespondedAfterNewestSellerReply =
+  threadMessages
+    .slice(newestSellerThreadIndex + 1)
+    .some(
+      (message) =>
+        message.sender.toLowerCase() === "you"
+    );
+
+if (alreadyRespondedAfterNewestSellerReply) {
+  console.log(
+    "SAFETY: DealHaus/You already responded after this seller reply."
+  );
+}
 
     /*
       Extra sender safety:
@@ -717,52 +742,68 @@ Determine the correct next action.
       We are still inside the exact verified
       seller conversation.
     */
-    const composer = page
-      .locator(
-        '[contenteditable="true"][role="textbox"]'
-      )
-      .last();
+    let responseVerified = false;
 
-    if (
-      !(await composer
-        .isVisible()
-        .catch(() => false))
-    ) {
-      throw new Error(
-        "Facebook seller conversation composer is unavailable"
-      );
-    }
+if (alreadyRespondedAfterNewestSellerReply) {
+  console.log(
+    "\nDUPLICATE OUTBOUND SEND BLOCKED"
+  );
+  console.log(
+    "A DealHaus/You response already exists after this exact seller reply."
+  );
+  console.log(
+    "Skipping Facebook send and continuing the database handoff."
+  );
 
-    await composer.click();
+  responseVerified = true;
+} else {
+  const composer = page
+    .locator(
+      '[contenteditable="true"][role="textbox"]'
+    )
+    .last();
 
-    await page.keyboard.insertText(
+  if (
+    !(await composer
+      .isVisible()
+      .catch(() => false))
+  ) {
+    throw new Error(
+      "Facebook seller conversation composer is unavailable"
+    );
+  }
+
+  await composer.click();
+
+  await page.keyboard.insertText(
+    decision.response
+  );
+
+  console.log(
+    "\nSENDING AI RESPONSE:"
+  );
+  console.log(decision.response);
+
+  await composer.press("Enter");
+
+  await page.waitForTimeout(2500);
+
+  responseVerified =
+    await verifyExactResponseInThread(
+      conversationContainer,
       decision.response
     );
 
-    console.log(
-      "\nSENDING AI RESPONSE:"
+  if (!responseVerified) {
+    throw new Error(
+      "AI response was not verified inside the exact seller conversation after send"
     );
-    console.log(decision.response);
+  }
 
-    await composer.press("Enter");
-
-    await page.waitForTimeout(2500);
-
-    const responseVerified =
-      await verifyExactResponseInThread(
-        conversationContainer,
-        decision.response
-      );
-
-    if (!responseVerified) {
-      throw new Error(
-        "AI response was not verified inside the exact seller conversation after send"
-      );
-    }
-
-    console.log(
-      "VERIFIED: EXACT AI RESPONSE APPEARS IN EXACT SELLER THREAD"
-    );
+  console.log(
+    "VERIFIED: EXACT AI RESPONSE APPEARS IN EXACT SELLER THREAD"
+  );
+}
 
     /*
       Only after external Facebook verification

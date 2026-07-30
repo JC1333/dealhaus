@@ -7,6 +7,41 @@ const { spawnSync } = require("child_process");
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+async function getConversationMessages(
+  conversationContainer
+) {
+  const messageElements =
+    conversationContainer.locator(
+      '[aria-label^="Enter, Message sent"]'
+    );
+
+  const messages = [];
+
+  for (
+    let i = 0;
+    i < await messageElements.count();
+    i++
+  ) {
+    const aria =
+      (await messageElements
+        .nth(i)
+        .getAttribute("aria-label")) || "";
+
+    const match = aria.match(
+      /^Enter, Message sent .* by ([^:]+):\s*(.+)$/
+    );
+
+    if (!match) continue;
+
+    messages.push({
+      sender: match[1].trim(),
+      message: match[2].trim(),
+      aria,
+    });
+  }
+
+  return messages;
+}
 
 (async () => {
   const supabase = createClient(
@@ -162,15 +197,16 @@ console.log(
 });
 
 let threadBody = "";
+let conversationContainer = null;
 let previousMessageSnapshot = "";
 let stableMessagePasses = 0;
 
 for (let attempt = 1; attempt <= 15; attempt++) {
   await page.waitForTimeout(1000);
 
-  const conversationContainer = page.locator(
-    `[aria-label="Messages in conversation titled ${conversationTitle}"]`
-  );
+  conversationContainer = page.locator(
+  `[aria-label="Messages in conversation titled ${conversationTitle}"]`
+);
 
   const conversationVisible =
     await conversationContainer
@@ -271,35 +307,17 @@ if (!threadBody) {
       conversationTitle.split("·")[0]?.trim() ||
       "Facebook Buyer";
 
-    const lines = threadBody
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
+    const threadMessages =
+  await getConversationMessages(
+    conversationContainer
+  );
 
-    const incomingMessages = [];
-
-    for (const line of lines) {
-      const match = line.match(
-        /^Enter, Message sent .* by ([^:]+):\s*(.+)$/
-      );
-
-      if (!match) continue;
-
-      const sender = match[1].trim();
-      const message = match[2].trim();
-
-      if (
-        sender.toLowerCase() === "you" ||
-        sender.toLowerCase() === "dealhaus"
-      ) {
-        continue;
-      }
-
-      incomingMessages.push({
-        sender,
-        message,
-      });
-    }
+const incomingMessages =
+  threadMessages.filter(
+    (message) =>
+      message.sender.toLowerCase() !== "you" &&
+      message.sender.toLowerCase() !== "dealhaus"
+  );
 
     if (!incomingMessages.length) {
       console.log(
@@ -310,7 +328,32 @@ if (!threadBody) {
 
     const newestBuyerMessage =
       incomingMessages[incomingMessages.length - 1];
+const newestBuyerThreadIndex =
+  threadMessages.findLastIndex(
+    (message) =>
+      message.aria === newestBuyerMessage.aria
+  );
 
+if (newestBuyerThreadIndex === -1) {
+  throw new Error(
+    "Newest buyer message could not be anchored inside the exact verified thread."
+  );
+}
+
+const alreadyRespondedAfterNewestBuyerMessage =
+  threadMessages
+    .slice(newestBuyerThreadIndex + 1)
+    .some(
+      (message) =>
+        message.sender.toLowerCase() === "you" ||
+        message.sender.toLowerCase() === "dealhaus"
+    );
+
+if (alreadyRespondedAfterNewestBuyerMessage) {
+  console.log(
+    "SAFETY: DealHaus/You already responded after this buyer message."
+  );
+}
     console.log("BUYER:", buyerName);
     console.log(
       "NEWEST MESSAGE:",
@@ -563,7 +606,9 @@ if (
 
       if (!alreadyRelayed && sellerDecisionResponse) {
         let currentThreadBody =
-          await page.locator("body").innerText();
+  await conversationContainer
+    .innerText()
+    .catch(() => "");
 
         if (!currentThreadBody.includes(sellerDecisionResponse)) {
           const relayComposer = page
@@ -598,7 +643,9 @@ if (
           await page.waitForTimeout(2500);
 
           currentThreadBody =
-            await page.locator("body").innerText();
+  await conversationContainer
+    .innerText()
+    .catch(() => "");
 
           if (
             !currentThreadBody.includes(
@@ -983,64 +1030,97 @@ if (aiLookupError) throw aiLookupError;
 
 if (existingAiMessage) {
   console.log("\nDUPLICATE AI RESPONSE BLOCKED");
-  continue;
+  console.log(
+    "DealHaus already recorded this response. No Facebook send needed."
+  );
 }
 
 // Make sure the response is not already visible in Facebook.
-let currentThreadBody = await page.locator("body").innerText();
-
-if (currentThreadBody.includes(decision.response)) {
-  console.log("\nEXACT AI RESPONSE ALREADY EXISTS IN FACEBOOK");
-  console.log("Duplicate Facebook send blocked.");
-  continue;
-}
-
-const composer = page
-  .locator('[contenteditable="true"][role="textbox"]')
-  .last();
-
-if (!(await composer.isVisible().catch(() => false))) {
-  throw new Error(
-    "Facebook Messenger composer was not available for buyer response"
-  );
-}
-
-await composer.click();
-if (DRY_RUN) {
-  console.log("\nDRY RUN — FACEBOOK RESPONSE NOT SENT");
-  console.log("WOULD SEND:");
-  console.log(decision.response);
-  continue;
-}
-await page.keyboard.insertText(decision.response);
-
-console.log("\nSENDING BUYER RESPONSE:");
-console.log(decision.response);
-
-await composer.press("Enter");
-
-// Verify externally before changing DealHaus state.
-// Facebook Messenger can take several seconds to render
-// a newly sent message, so retry instead of failing after
-// one immediate page read.
-let buyerResponseVerified = false;
-
-for (let verifyAttempt = 1; verifyAttempt <= 12; verifyAttempt++) {
-  await page.waitForTimeout(1000);
-
-  currentThreadBody = await page
-    .locator("body")
+let currentThreadBody =
+  await conversationContainer
     .innerText()
     .catch(() => "");
 
-  if (currentThreadBody.includes(decision.response)) {
-    buyerResponseVerified = true;
-    break;
+const priorFacebookResponseVerified =
+  alreadyRespondedAfterNewestBuyerMessage &&
+  currentThreadBody.includes(decision.response);
+
+if (priorFacebookResponseVerified) {
+  console.log(
+    "\nEXACT AI RESPONSE ALREADY EXISTS AFTER THIS BUYER MESSAGE"
+  );
+  console.log(
+    "Duplicate Facebook send blocked; continuing database handoff."
+  );
+}
+
+let buyerResponseVerified =
+  priorFacebookResponseVerified;
+
+if (!priorFacebookResponseVerified) {
+  const composer = page
+    .locator(
+      '[contenteditable="true"][role="textbox"]'
+    )
+    .last();
+
+  if (
+    !(await composer
+      .isVisible()
+      .catch(() => false))
+  ) {
+    throw new Error(
+      "Facebook Messenger composer was not available for buyer response"
+    );
   }
 
-  console.log(
-    `WAITING FOR BUYER RESPONSE VERIFICATION ${verifyAttempt}/12`
+  await composer.click();
+
+  if (DRY_RUN) {
+    console.log(
+      "\nDRY RUN — FACEBOOK RESPONSE NOT SENT"
+    );
+    console.log("WOULD SEND:");
+    console.log(decision.response);
+    continue;
+  }
+
+  await page.keyboard.insertText(
+    decision.response
   );
+
+  console.log(
+    "\nSENDING BUYER RESPONSE:"
+  );
+  console.log(decision.response);
+
+  await composer.press("Enter");
+
+  for (
+    let verifyAttempt = 1;
+    verifyAttempt <= 12;
+    verifyAttempt++
+  ) {
+    await page.waitForTimeout(1000);
+
+    currentThreadBody =
+      await conversationContainer
+        .innerText()
+        .catch(() => "");
+
+    if (
+      currentThreadBody.includes(
+        decision.response
+      )
+    ) {
+      buyerResponseVerified = true;
+      break;
+    }
+
+    console.log(
+      `WAITING FOR BUYER RESPONSE VERIFICATION ${verifyAttempt}/12`
+    );
+  }
 }
 
 if (!buyerResponseVerified) {
@@ -1050,7 +1130,9 @@ if (!buyerResponseVerified) {
 }
 
 console.log(
-  "VERIFIED: EXACT BUYER RESPONSE APPEARS IN FACEBOOK THREAD"
+  priorFacebookResponseVerified
+    ? "VERIFIED: PRIOR BUYER RESPONSE EXISTS AFTER EXACT BUYER MESSAGE"
+    : "VERIFIED: EXACT BUYER RESPONSE APPEARS IN FACEBOOK THREAD"
 );
 if (
   acceptedSellerCounter &&

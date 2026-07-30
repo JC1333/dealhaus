@@ -33,8 +33,9 @@ async function runSellerSweep() {
       .from("seller_leads")
       .select("id,item_title,platform,lead_source,marketplace_listing_url,outreach_status,status")
       .eq("outreach_status", "contacted")
-      .eq("status", "approved_for_outreach")
-      .order("created_at", { ascending: true });
+.eq("status", "approved_for_outreach")
+.not("lead_source", "ilike", "%test%")
+.order("created_at", { ascending: true });
 
     if (error) {
       throw error;
@@ -92,11 +93,12 @@ async function runSellerSweep() {
         sellerAgentPath = facebookSellerAgentPath;
         console.log("Platform route: FACEBOOK");
       } else {
-        console.log(
-          `SKIPPED: Unsupported contacted seller platform: ${lead.platform || lead.lead_source || "unknown"}`
-        );
-        continue;
-      }
+  console.error(
+    `FAILED SAFE: Unsupported contacted seller platform: ${lead.platform || lead.lead_source || "unknown"}`
+  );
+  sweepFailed = true;
+  continue;
+}
 
       const childSucceeded = await new Promise((resolve) => {
         const child = spawn(
