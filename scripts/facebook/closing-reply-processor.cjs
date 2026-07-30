@@ -246,14 +246,24 @@ function parseMessageAria(aria) {
       }
 
       if (exactRow) {
-        break;
-      }
+  break;
+}
 
-      console.log(
-        `WAITING FOR EXACT BUYER ROW ${attempt}/30`
-      );
+if (count > 0) {
+  const lastRow = rows.nth(count - 1);
 
-      await page.waitForTimeout(1000);
+  await lastRow
+    .scrollIntoViewIfNeeded()
+    .catch(() => {});
+
+  await page.mouse.wheel(0, 1200);
+}
+
+console.log(
+  `WAITING FOR EXACT BUYER ROW ${attempt}/30`
+);
+
+await page.waitForTimeout(1000);
     }
 
     if (
