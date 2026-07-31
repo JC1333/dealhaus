@@ -700,8 +700,15 @@ if (
         console.log(
           `SELLER RESULT RELAYED TO FACEBOOK BUYER: ${relayStage}`
         );
+
+        continue;
+      }
+
+      if (alreadyRespondedAfterNewestBuyerMessage) {
+        continue;
       }
     }
+
     const { data: duplicateMessage, error: duplicateError } =
       await supabase
         .from("buyer_conversation_messages")
@@ -1376,3 +1383,5 @@ console.log(
   );
   process.exit(1);
 });
+
+

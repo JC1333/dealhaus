@@ -1,4 +1,4 @@
-﻿const { createClient } = require("@supabase/supabase-js");
+const { createClient } = require("@supabase/supabase-js");
 
 const TRANSACTION_ID = process.argv[2];
 
@@ -16,11 +16,15 @@ function extractQuotedNote(notes, label) {
   const text = String(notes || "");
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  const match = text.match(
-    new RegExp(`${escaped}\\s*"([\\s\\S]*?)"`, "i")
+  const matches = Array.from(
+    text.matchAll(
+      new RegExp(`${escaped}\\s*"([\\s\\S]*?)"`, "gi")
+    )
   );
 
-  return match ? match[1].trim() : "";
+  const latest = matches[matches.length - 1];
+
+  return latest ? latest[1].trim() : "";
 }
 
 function extractTime(text) {
@@ -99,7 +103,8 @@ function extractRelativeDay(...texts) {
     extractQuotedNote(notes, "Seller closing reply:");
 
   const buyerLogisticsReply =
-    extractQuotedNote(notes, "Buyer logistics reply:");
+    extractQuotedNote(notes, "Buyer logistics reply:") ||
+    extractQuotedNote(notes, "Buyer logistics confirmation:");
 
   const sellerTime =
     extractTime(sellerReply);
@@ -201,3 +206,4 @@ function extractRelativeDay(...texts) {
   );
   process.exit(1);
 });
+

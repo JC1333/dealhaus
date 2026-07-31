@@ -1,4 +1,4 @@
-﻿const { chromium } = require("playwright");
+const { chromium } = require("playwright");
 const { createClient } = require("@supabase/supabase-js");
 const path = require("path");
 
@@ -713,6 +713,7 @@ await page.waitForTimeout(1000);
 
   process.exit(1);
 });
+
 
 
 
