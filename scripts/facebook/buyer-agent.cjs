@@ -1074,7 +1074,13 @@ if (!priorFacebookResponseVerified) {
     );
   }
 
-  await composer.click();
+  try {
+    await composer.click({ timeout: 5000 });
+  } catch {
+    await composer.evaluate((element) => element.click());
+  }
+
+  await composer.focus();
 
   if (DRY_RUN) {
     console.log(

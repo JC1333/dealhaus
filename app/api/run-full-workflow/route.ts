@@ -332,12 +332,47 @@ export async function POST(request: Request) {
       }
 
       if (!existingTransaction || existingTransaction.length === 0) {
+        const { data: relistLink, error: relistLinkError } =
+          await supabase
+            .from("ai_relist_tasks")
+            .select("listing_prep_task_id")
+            .eq("inventory_item_id", item.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (relistLinkError || !relistLink?.listing_prep_task_id) {
+          result.errors.push(
+            `Seller link lookup failed for inventory ${item.id}: ${
+              relistLinkError?.message || "No listing prep task link found."
+            }`
+          );
+          continue;
+        }
+
+        const { data: prepLink, error: prepLinkError } =
+          await supabase
+            .from("listing_prep_tasks")
+            .select("seller_lead_id")
+            .eq("id", relistLink.listing_prep_task_id)
+            .maybeSingle();
+
+        if (prepLinkError || !prepLink?.seller_lead_id) {
+          result.errors.push(
+            `Seller lead lookup failed for inventory ${item.id}: ${
+              prepLinkError?.message || "No seller lead link found."
+            }`
+          );
+          continue;
+        }
+
         const salePrice = Number(item.price || 0);
 
         const { error: transactionInsertError } = await supabase
           .from("brokerage_transactions")
           .insert({
             inventory_item_id: item.id,
+            seller_lead_id: prepLink.seller_lead_id,
             marketplace_publish_task_id: publishTaskId,
             item_title: item.title || "Marketplace Listing",
             seller_name: item.seller_name || "Marketplace Seller",
@@ -384,3 +419,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

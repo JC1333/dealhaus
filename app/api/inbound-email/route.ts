@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
@@ -718,8 +718,8 @@ export async function POST(req: Request) {
       const sellerReply = buyerMessage.trim();
 
       const counterMatch = sellerReply.match(
-  /^(?:COUNTER|COUNTEROFFER|COUNTER\s+OFFER|I\s+COUNTER(?:\s+AT)?)\s*:?\s*\$?\s*(\d+(?:\.\d{1,2})?)\b/i
-);
+        /(?:^(?:COUNTER|COUNTEROFFER|COUNTER\s+OFFER|I\s+COUNTER(?:\s+AT)?)\s*:?\s*|^(?:I\s+(?:CAN|COULD|WOULD)\s+(?:ACCEPT|TAKE)|I'D\s+(?:ACCEPT|TAKE)|(?:I\s+)?NEED|(?:I\s+)?WANT)\s+|^\s*)(?:\$?\s*)(\d+(?:\.\d{1,2})?)(?:\s*(?:WORKS|IS\s+FINE|WOULD\s+WORK))?\b/i
+      );
 
       if (/^ACCEPT\b/i.test(sellerReply)) {
         const { error: taskUpdateError } = await supabase
@@ -1097,6 +1097,7 @@ dealhaus.us`;
     );
   }
 }
+
 
 
 

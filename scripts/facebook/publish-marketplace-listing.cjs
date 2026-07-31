@@ -324,13 +324,36 @@ const refreshedCombos = page.locator('[role="combobox"]');
 await refreshedCombos.nth(2).click();
 await page.waitForTimeout(1000);
 
-const newCondition = page.getByText("New", {
-  exact: true,
-}).last();
+const normalizedCondition = String(item.condition || "")
+  .trim()
+  .toLowerCase();
 
-await newCondition.click({ timeout: 10000 });
+let facebookCondition = "Used - Good";
 
-console.log("Condition selected: New");
+if (
+  normalizedCondition === "new" ||
+  normalizedCondition.includes("brand new")
+) {
+  facebookCondition = "New";
+} else if (
+  normalizedCondition.includes("like new") ||
+  normalizedCondition.includes("excellent")
+) {
+  facebookCondition = "Used - Like New";
+} else if (
+  normalizedCondition.includes("fair")
+) {
+  facebookCondition = "Used - Fair";
+}
+
+const conditionOption = page
+  .getByText(facebookCondition, {
+    exact: true,
+  })
+  .last();
+
+await conditionOption.click({ timeout: 10000 });
+console.log(`Condition selected: ${facebookCondition}`);
 
 console.log("\nFULL FORM FILL COMPLETE");
 console.log("Photos/title/price/category/condition/description entered.");

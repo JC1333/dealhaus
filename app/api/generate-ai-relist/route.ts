@@ -149,12 +149,32 @@ Rules:
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    const finalImageUrls =
-      sellerPhotoUrls.length > 0
-        ? sellerPhotoUrls
-        : [
-            "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=1200&auto=format&fit=crop",
-          ];
+
+    if (sellerPhotoUrls.length === 0) {
+      await supabase.from("exception_tasks").insert({
+        exception_type: "workflow_missing_seller_photos",
+        related_table: "seller_leads",
+        related_record_id:
+          sellerLead?.id ||
+          task.seller_lead_id ||
+          prepTask?.seller_lead_id ||
+          null,
+        item_title: sourceTitle,
+        exception_status: "open",
+        notes:
+          "AI relisting stopped because no real seller photos were available. The seller must upload photos before this item can be published.",
+      });
+
+      return NextResponse.json(
+        {
+          error:
+            "No real seller photos are available. Upload photos before continuing.",
+        },
+        { status: 409 }
+      );
+    }
+
+    const finalImageUrls = sellerPhotoUrls;
 
     const { data: existingInventory } = await supabase
       .from("inventory")
@@ -183,7 +203,7 @@ Rules:
           seller_city: sellerLead?.seller_city || "",
           seller_state: sellerLead?.seller_state || "",
           category: "Marketplace",
-          condition: "Seller provided",
+          condition: sourceCondition,
           image: finalImageUrls[0],
           images: finalImageUrls,
         })
@@ -218,3 +238,4 @@ Rules:
     );
   }
 }
+
