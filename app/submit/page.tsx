@@ -108,6 +108,60 @@ if (/craigslist\.org/i.test(marketplaceUrl)) {
 } else if (marketplaceUrl) {
   marketplacePlatform = "Existing Marketplace Listing";
 }
+
+if (
+  uploadedPhotoUrls.length === 0 &&
+  marketplaceUrl
+) {
+  try {
+    const importResponse = await fetch(
+      "/api/import-deals",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          listingUrl: marketplaceUrl,
+        }),
+      }
+    );
+
+    const importResult =
+      await importResponse.json();
+
+    const importedPhotoUrls =
+      Array.isArray(
+        importResult?.listing?.imageUrls
+      )
+        ? importResult.listing.imageUrls.filter(
+            (url: unknown): url is string =>
+              typeof url === "string" &&
+              /^https?:\/\//i.test(url)
+          )
+        : [];
+
+    if (importedPhotoUrls.length > 0) {
+      uploadedPhotoUrls.push(
+        ...importedPhotoUrls
+      );
+    }
+  } catch (importError) {
+    console.error(
+      "Marketplace photo import failed:",
+      importError
+    );
+  }
+}
+
+if (uploadedPhotoUrls.length === 0) {
+  setLoading(false);
+  alert(
+    "DealHaus could not import photos from this listing. Please upload at least one real photo before submitting."
+  );
+  return;
+}
+
     const { error } = await supabase.from("seller_leads").insert({
       seller_name: form.name,
       seller_email: form.email,
