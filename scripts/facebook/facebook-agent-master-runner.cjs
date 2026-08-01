@@ -257,6 +257,13 @@ async function runMasterSweep() {
 
     results.push(
       runAgentSafely(
+        "INITIAL SELLER OUTREACH",
+        "initial-seller-outreach-runner.cjs"
+      )
+    );
+
+    results.push(
+      runAgentSafely(
         "SELLER AGENT SWEEP",
         "seller-agent-runner.cjs"
       )
@@ -413,4 +420,5 @@ runMasterSweep();
 setInterval(() => {
   runMasterSweep();
 }, CHECK_INTERVAL_MS);
+
 
