@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
+import {
+  fetchFacebookListingWithApify,
+  getFacebookListingCondition,
+  getFacebookListingPrice,
+} from "@/lib/facebook-marketplace-import";
 
 export const runtime = "nodejs";
 
@@ -728,6 +733,87 @@ export async function POST(req: Request) {
     }
 
     if (!html) {
+      if (platform === "Facebook Marketplace") {
+        try {
+          const facebookListing =
+            await fetchFacebookListingWithApify(
+              parsedUrl.toString()
+            );
+
+          const imageUrls =
+            Array.isArray(facebookListing?.images)
+              ? facebookListing.images.filter(
+                  (url): url is string =>
+                    typeof url === "string" &&
+                    /^https?:\/\//i.test(url)
+                )
+              : [];
+
+          if (
+            facebookListing &&
+            imageUrls.length > 0
+          ) {
+            const apifyListing: ExtractedListing = {
+              title: String(
+                facebookListing.title || ""
+              ).trim(),
+              description: String(
+                facebookListing.description || ""
+              ).trim(),
+              price: getFacebookListingPrice(
+                facebookListing
+              ),
+              location: String(
+                facebookListing.location?.full || ""
+              ).trim(),
+              imageUrls,
+              category: "",
+              condition:
+                getFacebookListingCondition(
+                  facebookListing
+                ),
+            };
+
+            const saved = await saveImport({
+              platform,
+              listingUrl: parsedUrl.toString(),
+              listing: apifyListing,
+              status: "preview_ready",
+              extractionMethod:
+                "apify_facebook_fallback",
+              extractionError: "",
+              rawPageText: "",
+              existingImportId:
+                existingImport.reusableImportId,
+            });
+
+            if (saved.error) {
+              return NextResponse.json(
+                { error: saved.error },
+                { status: 500 }
+              );
+            }
+
+            return NextResponse.json({
+              success: true,
+              importId: saved.data?.id,
+              platform,
+              status: "preview_ready",
+              extractionMethod:
+                "apify_facebook_fallback",
+              message:
+                "Facebook listing details and photos were imported.",
+              listing: apifyListing,
+            });
+          }
+        } catch (apifyError) {
+          console.error(
+            "Facebook Apify import fallback failed:",
+            apifyError
+          );
+        }
+      }
+
       const emptyListing: ExtractedListing = {
         title: "",
         description: "",
