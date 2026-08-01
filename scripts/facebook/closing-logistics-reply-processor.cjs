@@ -1,4 +1,4 @@
-﻿const { chromium } = require("playwright");
+const { chromium } = require("playwright");
 const { createClient } = require("@supabase/supabase-js");
 const path = require("path");
 
@@ -204,7 +204,7 @@ function parseMessageAria(aria) {
 
     for (
       let attempt = 1;
-      attempt <= 30;
+      attempt <= 10;
       attempt++
     ) {
       const rows = page.locator(
@@ -333,7 +333,7 @@ function parseMessageAria(aria) {
 
     for (
       let attempt = 1;
-      attempt <= 30;
+      attempt <= 10;
       attempt++
     ) {
       await page.waitForTimeout(1000);
@@ -359,17 +359,19 @@ function parseMessageAria(aria) {
         }
       }
 
+      const normalizedAriaSnapshot =
+        ariaSnapshot
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .toLowerCase();
+
       closingMessageFound =
-        ariaSnapshot.some((aria) => {
-          return (
-            aria.includes(
-              `by You: ${closingMessageMarker}`
-            ) &&
-            aria.includes(
-              closingMessageConfirmation
-            )
-          );
-        });
+        normalizedAriaSnapshot.includes(
+          closingMessageMarker.toLowerCase()
+        ) &&
+        normalizedAriaSnapshot.includes(
+          closingMessageConfirmation.toLowerCase()
+        );
 
       const snapshotKey =
         ariaSnapshot.join("\n");
@@ -698,6 +700,7 @@ const nextNotes =
 
   process.exit(1);
 });
+
 
 
 

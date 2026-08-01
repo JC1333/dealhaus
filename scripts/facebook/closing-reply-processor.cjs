@@ -204,7 +204,7 @@ function parseMessageAria(aria) {
 
     for (
       let attempt = 1;
-      attempt <= 30;
+      attempt <= 10;
       attempt++
     ) {
       const rows = page.locator(
@@ -343,7 +343,7 @@ await page.waitForTimeout(1000);
 
     for (
       let attempt = 1;
-      attempt <= 30;
+      attempt <= 10;
       attempt++
     ) {
       await page.waitForTimeout(1000);
@@ -369,17 +369,19 @@ await page.waitForTimeout(1000);
         }
       }
 
+      const normalizedAriaSnapshot =
+        ariaSnapshot
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .toLowerCase();
+
       closingMessageFound =
-        ariaSnapshot.some((aria) => {
-          return (
-            aria.includes(
-              `by You: ${closingMessageMarker}`
-            ) &&
-            aria.includes(
-              closingMessageConfirmation
-            )
-          );
-        });
+        normalizedAriaSnapshot.includes(
+          closingMessageMarker.toLowerCase()
+        ) &&
+        normalizedAriaSnapshot.includes(
+          closingMessageConfirmation.toLowerCase()
+        );
 
       const snapshotKey =
         ariaSnapshot.join("\n");
@@ -713,6 +715,7 @@ await page.waitForTimeout(1000);
 
   process.exit(1);
 });
+
 
 
 

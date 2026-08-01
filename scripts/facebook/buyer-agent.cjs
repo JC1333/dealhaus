@@ -1218,9 +1218,9 @@ if (decision.ready_for_negotiation === true) {
   const { data: existingNegotiations, error: negotiationLookupError } =
     await supabase
       .from("negotiation_tasks")
-      .select("id,negotiation_status")
-      .eq("inventory_item_id", publishedTask.inventory_item_id)
-      .eq("buyer_name", buyerName)
+      .select("id,negotiation_status,current_offer,created_at")
+      .eq("buyer_outreach_task_id", buyerOutreachTask.id)
+      .order("created_at", { ascending: false })
       .limit(1);
 
   if (negotiationLookupError) {
@@ -1232,10 +1232,20 @@ if (decision.ready_for_negotiation === true) {
 const existingNegotiationStatus =
   existingNegotiations[0].negotiation_status;
 
-if (existingNegotiationStatus === "offer_accepted") {
+const protectedNegotiationStatuses = [
+  "seller_offer_sent",
+  "offer_accepted",
+];
+
+if (
+  protectedNegotiationStatuses.includes(
+    existingNegotiationStatus
+  )
+) {
   console.log(
-    `NEGOTIATION ALREADY ACCEPTED — NOT REOPENING ${negotiationTaskId}`
+    `NEGOTIATION ${existingNegotiationStatus.toUpperCase()} - NOT REOPENING ${negotiationTaskId}`
   );
+
   negotiationTaskId = null;
 } else {
   const { error: negotiationUpdateError } =
@@ -1246,15 +1256,19 @@ if (existingNegotiationStatus === "offer_accepted") {
         current_offer: actualOffer,
         negotiation_status: "buyer_offer_received",
       })
-      .eq("id", negotiationTaskId);
+      .eq("id", negotiationTaskId)
+      .eq(
+        "negotiation_status",
+        existingNegotiationStatus
+      );
 
   if (negotiationUpdateError) {
     throw negotiationUpdateError;
   }
 
   console.log(
-  `NEGOTIATION UPDATED: BUYER OFFER $${actualOffer}`
-);
+    `NEGOTIATION UPDATED: BUYER OFFER $${actualOffer}`
+  );
 }
 } else {
   const {
@@ -1383,5 +1397,8 @@ console.log(
   );
   process.exit(1);
 });
+
+
+
 
 
