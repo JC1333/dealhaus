@@ -16,6 +16,18 @@ const baseUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
   "http://localhost:3000";
 
+const OUTREACH_BATCH_LIMIT = Math.max(
+  1,
+  Number(
+    process.env.OUTREACH_BATCH_LIMIT || 25
+  )
+);
+
+const ONLY_SELLER_LEAD_ID =
+  String(
+    process.env.ONLY_SELLER_LEAD_ID || ""
+  ).trim();
+
 function normalizePlatform(value) {
   return String(value || "")
     .trim()
@@ -58,7 +70,7 @@ function senderForPlatform(platform) {
 }
 
 async function approveQualifiedLeads() {
-  const { data: leads, error } = await supabase
+  let leadQuery = supabase
     .from("seller_leads")
     .select(
       "id,item_title,platform,marketplace_source,ai_score,acquisition_score,status,outreach_status,approval_status"
@@ -70,7 +82,17 @@ async function approveQualifiedLeads() {
     .order("created_at", {
       ascending: true,
     })
-    .limit(25);
+    .limit(OUTREACH_BATCH_LIMIT);
+
+  if (ONLY_SELLER_LEAD_ID) {
+    leadQuery = leadQuery.eq(
+      "id",
+      ONLY_SELLER_LEAD_ID
+    );
+  }
+
+  const { data: leads, error } =
+    await leadQuery;
 
   if (error) {
     throw error;
@@ -112,7 +134,7 @@ async function approveQualifiedLeads() {
 }
 
 async function sendPendingOutreach() {
-  const { data: tasks, error } = await supabase
+  let taskQuery = supabase
     .from("outreach_tasks")
     .select(
       "id,seller_lead_id,item_title,platform,send_status,attempt_count"
@@ -121,7 +143,17 @@ async function sendPendingOutreach() {
     .order("created_at", {
       ascending: true,
     })
-    .limit(25);
+    .limit(OUTREACH_BATCH_LIMIT);
+
+  if (ONLY_SELLER_LEAD_ID) {
+    taskQuery = taskQuery.eq(
+      "seller_lead_id",
+      ONLY_SELLER_LEAD_ID
+    );
+  }
+
+  const { data: tasks, error } =
+    await taskQuery;
 
   if (error) {
     throw error;
