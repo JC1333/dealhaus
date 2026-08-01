@@ -5,6 +5,45 @@ process.loadEnvFile(path.resolve(process.cwd(), ".env.local"));
 
 const CHECK_INTERVAL_MS = 60 * 1000;
 
+const ACQUISITION_INTERVAL_MS =
+  Number(
+    process.env.ACQUISITION_INTERVAL_MS ||
+      24 * 60 * 60 * 1000
+  );
+
+let lastAcquisitionRunAt = 0;
+
+
+async function runAcquisitionAgent() {
+  const baseUrl =
+    process.env.DEALHAUS_BASE_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "http://localhost:3000";
+
+  const response = await fetch(
+    `${baseUrl.replace(/\/$/, "")}/api/acquisition-run`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+      signal: AbortSignal.timeout(300000),
+    }
+  );
+
+  const body = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `Acquisition Agent failed with ${response.status}: ${body}`
+    );
+  }
+
+  console.log("ACQUISITION AGENT RESPONSE:");
+  console.log(body);
+}
+
 async function runServerWorkflow() {
   const baseUrl =
     process.env.DEALHAUS_BASE_URL ||
@@ -125,6 +164,65 @@ async function runMasterSweep() {
 
   try {
     const results = [];
+
+    const acquisitionDue =
+      lastAcquisitionRunAt === 0 ||
+      Date.now() - lastAcquisitionRunAt >=
+        ACQUISITION_INTERVAL_MS;
+
+    if (acquisitionDue) {
+      try {
+        console.log("\n======================================");
+        console.log("STARTING OPPORTUNITY ACQUISITION AI");
+        console.log(new Date().toLocaleString());
+        console.log("======================================");
+
+        await runAcquisitionAgent();
+
+        lastAcquisitionRunAt = Date.now();
+
+        results.push({
+          label: "OPPORTUNITY ACQUISITION AI",
+          status: "success",
+        });
+
+        console.log(
+          "\nOPPORTUNITY ACQUISITION AI COMPLETE"
+        );
+      } catch (error) {
+        console.error(
+          "\nOPPORTUNITY ACQUISITION AI ERROR:",
+          error.message
+        );
+
+        results.push({
+          label: "OPPORTUNITY ACQUISITION AI",
+          status: "failed",
+          error: error.message,
+        });
+
+        console.log(
+          "Master sweep will continue with existing DealHaus work."
+        );
+      }
+    } else {
+      const nextRunMinutes = Math.ceil(
+        (
+          ACQUISITION_INTERVAL_MS -
+          (Date.now() - lastAcquisitionRunAt)
+        ) / 60000
+      );
+
+      console.log(
+        `Opportunity Acquisition AI not due. Next scan in approximately ${nextRunMinutes} minutes.`
+      );
+
+      results.push({
+        label: "OPPORTUNITY ACQUISITION AI",
+        status: "success",
+      });
+    }
+
 
     try {
       console.log("\n======================================");
@@ -315,7 +413,4 @@ runMasterSweep();
 setInterval(() => {
   runMasterSweep();
 }, CHECK_INTERVAL_MS);
-
-
-
 
