@@ -376,6 +376,34 @@ if (alreadyRespondedAfterNewestBuyerMessage) {
 
     let conversation =
       existingConversations?.[0] || null;
+
+    const existingConversationStage =
+      String(
+        conversation?.conversation_stage || ""
+      ).toLowerCase();
+
+    const closingOwnedConversationStages = [
+      "offer_accepted",
+      "ready_to_close",
+      "sold",
+      "closed",
+    ];
+
+    if (
+      conversation &&
+      closingOwnedConversationStages.includes(
+        existingConversationStage
+      )
+    ) {
+      console.log(
+        `CLOSING WORKFLOW OWNS THIS CONVERSATION: ${existingConversationStage}`
+      );
+      console.log(
+        "Buyer Agent will not process this message as a new inquiry or negotiation."
+      );
+      continue;
+    }
+
     if (!conversation) {
       const { data: newConversation, error: createError } =
         await supabase
@@ -1342,11 +1370,6 @@ if (negotiationTaskId) {
   }
 }
 }
-const existingConversationStage =
-  String(
-    conversation?.conversation_stage || ""
-  ).toLowerCase();
-
 const terminalConversationStages = [
   "offer_accepted",
   "ready_to_close",
@@ -1397,6 +1420,9 @@ console.log(
   );
   process.exit(1);
 });
+
+
+
 
 
 

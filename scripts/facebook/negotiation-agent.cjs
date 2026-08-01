@@ -120,7 +120,6 @@ async function sendOfferToSeller(negotiationTaskId) {
     );
     return;
   }
-
   const { inventory, sellerLead } =
     await getSellerForInventory(task.inventory_item_id);
 
@@ -182,28 +181,87 @@ async function sendOfferToSeller(negotiationTaskId) {
     console.log(message);
     return;
   }
-  const { data, error } = await resend.emails.send({
-    from: "DealHaus <invoices@dealhaus.us>",
-    to: sellerEmail,
-    replyTo: "dealhaus@duekseleu.resend.app",
-    subject,
-    text: message,
-  });
+  const { data: claimedTask, error: claimError } =
+    await supabase
+      .from("negotiation_tasks")
+      .update({
+        negotiation_status: "seller_offer_sending",
+      })
+      .eq("id", task.id)
+      .eq("negotiation_status", "buyer_offer_received")
+      .select("id")
+      .maybeSingle();
 
-  if (error) {
-    throw new Error(
-      error.message || "Seller negotiation email failed"
-    );
+  if (claimError) {
+    throw claimError;
   }
 
-  const { error: updateError } = await supabase
-    .from("negotiation_tasks")
-    .update({
-      negotiation_status: "seller_offer_sent",
-    })
-    .eq("id", task.id);
+  if (!claimedTask) {
+    console.log(
+      "NEGOTIATION SKIPPED: another agent already claimed or advanced this offer."
+    );
+    return;
+  }
+
+  console.log(
+    `NEGOTIATION CLAIMED FOR SELLER EMAIL: ${task.id}`
+  );
+
+  let data;
+
+  try {
+    const sendResult = await resend.emails.send({
+      from: "DealHaus <invoices@dealhaus.us>",
+      to: sellerEmail,
+      replyTo: "dealhaus@duekseleu.resend.app",
+      subject,
+      text: message,
+    });
+
+    if (sendResult.error) {
+      throw new Error(
+        sendResult.error.message ||
+          "Seller negotiation email failed"
+      );
+    }
+
+    data = sendResult.data;
+  } catch (error) {
+    const { error: rollbackError } = await supabase
+      .from("negotiation_tasks")
+      .update({
+        negotiation_status: "buyer_offer_received",
+      })
+      .eq("id", task.id)
+      .eq("negotiation_status", "seller_offer_sending");
+
+    if (rollbackError) {
+      console.error(
+        "NEGOTIATION CLAIM ROLLBACK FAILED:",
+        rollbackError.message
+      );
+    }
+
+    throw error;
+  }
+  const { data: sentTask, error: updateError } =
+    await supabase
+      .from("negotiation_tasks")
+      .update({
+        negotiation_status: "seller_offer_sent",
+      })
+      .eq("id", task.id)
+      .eq("negotiation_status", "seller_offer_sending")
+      .select("id")
+      .maybeSingle();
 
   if (updateError) throw updateError;
+
+  if (!sentTask) {
+    throw new Error(
+      "Seller offer email was sent, but its negotiation claim could not be completed."
+    );
+  }
 
   console.log("\nSELLER OFFER EMAIL SENT");
   console.log(`Seller: ${sellerName}`);
