@@ -598,3 +598,5 @@ await context.close();
   console.error("\nFACEBOOK PUBLISHER FAILED:", error.message);
   process.exit(1);
 });
+
+
