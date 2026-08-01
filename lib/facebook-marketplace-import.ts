@@ -31,8 +31,47 @@ type ApifyRun = {
   defaultDatasetId: string;
 };
 
+type CuriousCoderListing = {
+  id?: string;
+  inputUrl?: string;
+  listingUrl?: string;
+  marketplace_listing_title?: string;
+  base_marketplace_listing_title?: string;
+  redacted_description?: {
+    text?: string;
+  } | null;
+  listing_price?: {
+    amount?: string | number;
+    currency?: string;
+    formatted_amount_zeros_stripped?: string;
+  } | null;
+  location_text?: {
+    text?: string;
+  } | null;
+  item_location?: {
+    latitude?: number;
+    longitude?: number;
+  } | null;
+  location?: {
+    latitude?: number;
+    longitude?: number;
+  } | null;
+  attribute_data?: Array<{
+    attribute_name?: string;
+    value?: string;
+    label?: string;
+  }>;
+  listing_photos?: Array<{
+    image?: {
+      uri?: string;
+      width?: number;
+      height?: number;
+    } | null;
+  }>;
+};
+
 const APIFY_ACTOR_ID =
-  "calm_builder~facebook-marketplace-scraper";
+  "curious_coder~facebook-marketplace";
 
 function normalizeText(value: unknown) {
   return typeof value === "string"
@@ -63,6 +102,88 @@ function numberOrNull(
   return null;
 }
 
+function getFacebookItemId(
+  listingUrl: string
+) {
+  return (
+    listingUrl.match(
+      /\/marketplace\/item\/(\d+)/i
+    )?.[1] || ""
+  );
+}
+
+function normalizeCuriousCoderListing(
+  listing: CuriousCoderListing
+): FacebookMarketplaceListing {
+  const images = Array.from(
+    new Set(
+      (listing.listing_photos || [])
+        .map((photo) =>
+          normalizeText(photo.image?.uri)
+        )
+        .filter((url) =>
+          /^https?:\/\//i.test(url)
+        )
+    )
+  ).slice(0, 12);
+
+  const priceAmount =
+    listing.listing_price?.amount;
+
+  const latitude =
+    listing.item_location?.latitude ??
+    listing.location?.latitude;
+
+  const longitude =
+    listing.item_location?.longitude ??
+    listing.location?.longitude;
+
+  return {
+    id: normalizeText(listing.id),
+    url:
+      normalizeText(listing.listingUrl) ||
+      normalizeText(listing.inputUrl),
+    title:
+      normalizeText(
+        listing.marketplace_listing_title
+      ) ||
+      normalizeText(
+        listing.base_marketplace_listing_title
+      ),
+    description:
+      normalizeText(
+        listing.redacted_description?.text
+      ),
+    price: {
+      amount:
+        numberOrNull(priceAmount) ??
+        priceAmount,
+      currency:
+        normalizeText(
+          listing.listing_price?.currency
+        ),
+      formatted:
+        normalizeText(
+          listing.listing_price
+            ?.formatted_amount_zeros_stripped
+        ),
+    },
+    location: {
+      full: normalizeText(
+        listing.location_text?.text
+      ),
+      latitude,
+      longitude,
+    },
+    images,
+    attribute_data:
+      Array.isArray(listing.attribute_data)
+        ? listing.attribute_data
+        : [],
+    condition: null,
+  };
+}
+
 export function getFacebookListingPrice(
   listing: FacebookMarketplaceListing
 ) {
@@ -84,9 +205,9 @@ export function getFacebookListingCondition(
   const conditionAttribute =
     listing.attribute_data?.find(
       (attribute) =>
-        attribute.attribute_name
-          ?.toLowerCase()
-          .trim() === "condition"
+        normalizeText(
+          attribute.attribute_name
+        ).toLowerCase() === "condition"
     );
 
   return (
@@ -111,6 +232,15 @@ export async function fetchFacebookListingWithApify(
     );
   }
 
+  const expectedListingId =
+    getFacebookItemId(listingUrl);
+
+  if (!expectedListingId) {
+    throw new Error(
+      "A valid Facebook Marketplace item URL is required."
+    );
+  }
+
   const startResponse = await fetch(
     `https://api.apify.com/v2/acts/${APIFY_ACTOR_ID}/runs`,
     {
@@ -122,16 +252,14 @@ export async function fetchFacebookListingWithApify(
           "application/json",
       },
       body: JSON.stringify({
-        startUrls: [
-          {
-            url: listingUrl,
-          },
-        ],
-        maxListings: 1,
-        fetchDetails: true,
-        getNewItems: true,
-        availability: "available",
-        deduplicateListings: true,
+        urls: [listingUrl],
+        getListingDetails: true,
+        getAllListingPhotos: true,
+        strictFiltering: true,
+        proxy: {
+          useApifyProxy: true,
+          apifyProxyCountry: "US",
+        },
       }),
       cache: "no-store",
     }
@@ -199,10 +327,48 @@ export async function fetchFacebookListingWithApify(
       const payload =
         await datasetResponse.json();
 
-      return Array.isArray(payload) &&
+      const rawListing =
+        Array.isArray(payload) &&
         payload.length > 0
-        ? payload[0]
-        : null;
+          ? (payload[0] as CuriousCoderListing)
+          : null;
+
+      if (!rawListing) {
+        return null;
+      }
+
+      const returnedListingId =
+        normalizeText(rawListing.id) ||
+        getFacebookItemId(
+          normalizeText(
+            rawListing.listingUrl
+          )
+        );
+
+      if (
+        returnedListingId !==
+        expectedListingId
+      ) {
+        throw new Error(
+          `Facebook import returned listing ${returnedListingId || "unknown"} instead of ${expectedListingId}.`
+        );
+      }
+
+      const normalized =
+        normalizeCuriousCoderListing(
+          rawListing
+        );
+
+      if (
+        !normalized.images ||
+        normalized.images.length === 0
+      ) {
+        throw new Error(
+          "Facebook listing was found, but no real listing photos were returned."
+        );
+      }
+
+      return normalized;
     }
 
     if (
