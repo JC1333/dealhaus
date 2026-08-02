@@ -168,10 +168,10 @@ async function sendOfferToSeller(negotiationTaskId) {
     buyerOffer: task.current_offer,
   });
 
- const subject =
-  `DealHaus Buyer Offer [${task.id}]: ${task.item_title || inventory.title}`;
+  const subject =
+    `New buyer offer: ${task.item_title || inventory.title} [DH:${task.id}]`;
   if (DRY_RUN) {
-    console.log("\nDRY RUN — NO EMAIL WILL BE SENT");
+    console.log("\nDRY RUN â€” NO EMAIL WILL BE SENT");
     console.log(`Negotiation ID: ${task.id}`);
     console.log(`Seller: ${sellerName}`);
     console.log(`Email: ${sellerEmail}`);
@@ -288,4 +288,3 @@ sendOfferToSeller(NEGOTIATION_TASK_ID).catch((error) => {
   );
   process.exit(1);
 });
-

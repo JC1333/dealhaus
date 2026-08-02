@@ -605,7 +605,7 @@ export async function POST(req: Request) {
       receivedEmail.subject || event.data?.subject || "";
 
     const negotiationMatch = negotiationSubject.match(
-      /DealHaus Buyer Offer \[([0-9a-f-]{36})\]/i
+      /(?:DealHaus Buyer Offer \[|\[DH:)([0-9a-f-]{36})\]/i
     );
 
     if (negotiationMatch) {
@@ -1097,7 +1097,3 @@ dealhaus.us`;
     );
   }
 }
-
-
-
-

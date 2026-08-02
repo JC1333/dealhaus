@@ -43,6 +43,399 @@ async function getConversationMessages(
   return messages;
 }
 
+async function processWebsiteBuyerInquiries(supabase) {
+  const { data: inquiries, error: inquiryError } =
+    await supabase
+      .from("buyer_inquiries")
+      .select("*")
+      .eq("status", "new")
+      .order("created_at", {
+        ascending: true,
+      });
+
+  if (inquiryError) {
+    throw inquiryError;
+  }
+
+  if (!inquiries?.length) {
+    console.log("No new DealHaus website inquiries.");
+    return;
+  }
+
+  console.log(
+    `Processing ${inquiries.length} DealHaus website buyer inquiries...`
+  );
+
+  for (const inquiry of inquiries) {
+    const inventoryItemId =
+      Number(inquiry.listing_id);
+
+    if (
+      !Number.isInteger(inventoryItemId) ||
+      inventoryItemId <= 0
+    ) {
+      console.log(
+        `WEBSITE INQUIRY SKIPPED: invalid listing_id "${inquiry.listing_id}"`
+      );
+      continue;
+    }
+
+    const buyerName =
+      String(inquiry.buyer_name || "")
+        .trim() ||
+      "DealHaus Website Buyer";
+
+    const buyerEmail =
+      String(inquiry.buyer_email || "")
+        .trim()
+        .toLowerCase();
+
+    const buyerMessage =
+      String(inquiry.message || "")
+        .trim();
+
+    console.log(
+      `\nPROCESSING WEBSITE INQUIRY ${inquiry.id}`
+    );
+    console.log(`Inventory: ${inventoryItemId}`);
+    console.log(`Buyer: ${buyerName}`);
+    console.log(`Message: ${buyerMessage}`);
+
+    const { data: inventoryItem, error: inventoryError } =
+      await supabase
+        .from("inventory")
+        .select("id,title,price,status")
+        .eq("id", inventoryItemId)
+        .single();
+
+    if (inventoryError || !inventoryItem) {
+      console.log(
+        `WEBSITE INQUIRY FAILED: inventory ${inventoryItemId} was not found.`
+      );
+      continue;
+    }
+
+    const {
+      data: existingConversations,
+      error: conversationLookupError,
+    } = await supabase
+      .from("buyer_conversations")
+      .select("*")
+      .eq("inventory_id", inventoryItemId)
+      .eq("buyer_name", buyerName)
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(1);
+
+    if (conversationLookupError) {
+      throw conversationLookupError;
+    }
+
+    let buyerConversation =
+      existingConversations?.[0] || null;
+
+    if (!buyerConversation) {
+      const {
+        data: createdConversation,
+        error: conversationInsertError,
+      } = await supabase
+        .from("buyer_conversations")
+        .insert({
+          inventory_id: inventoryItemId,
+          inventory_title:
+            inventoryItem.title ||
+            "DealHaus Marketplace Listing",
+          buyer_name: buyerName,
+          buyer_email: buyerEmail,
+          last_message: buyerMessage,
+          conversation_stage:
+            "dealhaus_website_inquiry",
+          unread_count: 1,
+        })
+        .select()
+        .single();
+
+      if (conversationInsertError) {
+        throw conversationInsertError;
+      }
+
+      buyerConversation =
+        createdConversation;
+
+      console.log(
+        "Created DealHaus website buyer conversation."
+      );
+    } else {
+      const {
+        data: updatedConversation,
+        error: conversationUpdateError,
+      } = await supabase
+        .from("buyer_conversations")
+        .update({
+          buyer_email:
+            buyerEmail ||
+            buyerConversation.buyer_email ||
+            "",
+          last_message: buyerMessage,
+          conversation_stage:
+            "dealhaus_website_inquiry",
+          unread_count:
+            Number(
+              buyerConversation.unread_count || 0
+            ) + 1,
+        })
+        .eq("id", buyerConversation.id)
+        .select()
+        .single();
+
+      if (conversationUpdateError) {
+        throw conversationUpdateError;
+      }
+
+      buyerConversation =
+        updatedConversation;
+
+      console.log(
+        "Updated DealHaus website buyer conversation."
+      );
+    }
+
+    const {
+      data: existingBuyerTasks,
+      error: buyerTaskLookupError,
+    } = await supabase
+      .from("buyer_outreach_tasks")
+      .select("*")
+      .eq(
+        "inventory_item_id",
+        inventoryItemId
+      )
+      .eq("buyer_name", buyerName)
+      .eq(
+        "buyer_platform",
+        "DealHaus Website"
+      )
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(1);
+
+    if (buyerTaskLookupError) {
+      throw buyerTaskLookupError;
+    }
+
+    let buyerOutreachTask =
+      existingBuyerTasks?.[0] || null;
+
+    if (!buyerOutreachTask) {
+      const {
+        data: createdBuyerTask,
+        error: buyerTaskInsertError,
+      } = await supabase
+        .from("buyer_outreach_tasks")
+        .insert({
+          inventory_item_id:
+            inventoryItemId,
+          item_title:
+            inventoryItem.title ||
+            "DealHaus Marketplace Listing",
+          listing_price:
+            Number(inventoryItem.price || 0),
+          buyer_name: buyerName,
+          buyer_platform:
+            "DealHaus Website",
+          outreach_message:
+            buyerMessage,
+          outreach_status:
+            "buyer_responded",
+        })
+        .select()
+        .single();
+
+      if (buyerTaskInsertError) {
+        throw buyerTaskInsertError;
+      }
+
+      buyerOutreachTask =
+        createdBuyerTask;
+
+      console.log(
+        "Created DealHaus website buyer outreach task."
+      );
+    } else {
+      const {
+        data: updatedBuyerTask,
+        error: buyerTaskUpdateError,
+      } = await supabase
+        .from("buyer_outreach_tasks")
+        .update({
+          outreach_message:
+            buyerMessage,
+          outreach_status:
+            "buyer_responded",
+        })
+        .eq("id", buyerOutreachTask.id)
+        .select()
+        .single();
+
+      if (buyerTaskUpdateError) {
+        throw buyerTaskUpdateError;
+      }
+
+      buyerOutreachTask =
+        updatedBuyerTask;
+
+      console.log(
+        "Updated DealHaus website buyer outreach task."
+      );
+    }
+
+    const offerMatch =
+      buyerMessage.match(
+        /\$\s*(\d+(?:\.\d{1,2})?)/
+      );
+
+    const buyerOffer =
+      offerMatch
+        ? Number(offerMatch[1])
+        : null;
+
+    if (
+      buyerOffer !== null &&
+      Number.isFinite(buyerOffer) &&
+      buyerOffer > 0
+    ) {
+      const {
+        data: existingNegotiations,
+        error: negotiationLookupError,
+      } = await supabase
+        .from("negotiation_tasks")
+        .select("*")
+        .eq(
+          "buyer_outreach_task_id",
+          buyerOutreachTask.id
+        )
+        .order("created_at", {
+          ascending: false,
+        })
+        .limit(1);
+
+      if (negotiationLookupError) {
+        throw negotiationLookupError;
+      }
+
+      const existingNegotiation =
+        existingNegotiations?.[0] || null;
+
+      if (!existingNegotiation) {
+        const {
+          data: createdNegotiation,
+          error: negotiationInsertError,
+        } = await supabase
+          .from("negotiation_tasks")
+          .insert({
+            buyer_outreach_task_id:
+              buyerOutreachTask.id,
+            inventory_item_id:
+              inventoryItemId,
+            item_title:
+              inventoryItem.title ||
+              "DealHaus Marketplace Listing",
+            buyer_name:
+              buyerName,
+            listing_price:
+              Number(inventoryItem.price || 0),
+            current_offer:
+              buyerOffer,
+            negotiation_status:
+              "buyer_offer_received",
+          })
+          .select()
+          .single();
+
+        if (negotiationInsertError) {
+          throw negotiationInsertError;
+        }
+
+        console.log(
+          `Created negotiation task ${createdNegotiation.id} for $${buyerOffer.toFixed(2)}.`
+        );
+      } else {
+        const protectedStatuses = [
+          "seller_offer_sending",
+          "seller_offer_sent",
+          "offer_accepted",
+          "offer_rejected",
+          "seller_counter_received",
+        ];
+
+        if (
+          protectedStatuses.includes(
+            String(
+              existingNegotiation.negotiation_status ||
+              ""
+            )
+          )
+        ) {
+          console.log(
+            `Existing negotiation ${existingNegotiation.id} is already "${existingNegotiation.negotiation_status}". It was not overwritten.`
+          );
+        } else {
+          const {
+            error: negotiationUpdateError,
+          } = await supabase
+            .from("negotiation_tasks")
+            .update({
+              current_offer:
+                buyerOffer,
+              negotiation_status:
+                "buyer_offer_received",
+            })
+            .eq(
+              "id",
+              existingNegotiation.id
+            );
+
+          if (negotiationUpdateError) {
+            throw negotiationUpdateError;
+          }
+
+          console.log(
+            `Updated negotiation ${existingNegotiation.id} with offer $${buyerOffer.toFixed(2)}.`
+          );
+        }
+      }
+    } else {
+      console.log(
+        "No dollar offer detected. Inquiry saved without creating a negotiation task."
+      );
+    }
+
+    const {
+      error: inquiryUpdateError,
+    } = await supabase
+      .from("buyer_inquiries")
+      .update({
+        status: "processed",
+      })
+      .eq("id", inquiry.id)
+      .eq("status", "new");
+
+    if (inquiryUpdateError) {
+      throw inquiryUpdateError;
+    }
+
+    console.log(
+      `Website inquiry ${inquiry.id} marked processed.`
+    );
+  }
+
+  console.log(
+    "DealHaus website buyer inquiry processing complete."
+  );
+}
+
 (async () => {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -53,10 +446,24 @@ async function getConversationMessages(
   console.log("----------------------------");
   console.log("INBOUND BUYER DETECTION MODE");
 if (DRY_RUN) {
-  console.log("DRY RUN MODE — NO FACEBOOK MESSAGES WILL BE SENT");
+  console.log("DRY RUN MODE â€” NO FACEBOOK MESSAGES WILL BE SENT");
 }
 
-  const { data: publishedTasks, error: publishError } = await supabase
+await processWebsiteBuyerInquiries(supabase);
+
+if (
+  String(
+    process.env.DEALHAUS_WEBSITE_INQUIRIES_ONLY || ""
+  ).toLowerCase() === "true"
+) {
+  console.log(
+    "Website-inquiries-only run complete. Facebook was not opened."
+  );
+  return;
+}
+
+
+const { data: publishedTasks, error: publishError } = await supabase
     .from("marketplace_publish_tasks")
     .select(
   "inventory_item_id,item_title,listing_price,facebook_url,publish_status"
@@ -291,7 +698,7 @@ if (!threadBody) {
     // participant as Buyer / lets us view buyer profile.
     const looksBuyerSide =
       threadBody.includes("View buyer profile") ||
-      threadBody.includes("· Buyer") ||
+      threadBody.includes("Â· Buyer") ||
       threadBody.includes(" Buyer\n");
 
     if (!looksBuyerSide) {
@@ -304,7 +711,7 @@ if (!threadBody) {
     buyerThreadsFound++;
 
     const buyerName =
-      conversationTitle.split("·")[0]?.trim() ||
+      conversationTitle.split("Â·")[0]?.trim() ||
       "Facebook Buyer";
 
     const threadMessages =
@@ -595,7 +1002,7 @@ if (
         "offer_accepted"
       ) {
         sellerDecisionResponse =
-          `Good news — the seller accepted your offer of $${Number(
+          `Good news â€” the seller accepted your offer of $${Number(
             negotiationResult.current_offer || 0
           ).toFixed(2)}. I'll help coordinate the next steps.`;
       }
@@ -940,7 +1347,7 @@ if (
     decision.needs_human_review = false;
     decision.ready_for_negotiation = false;
     decision.response =
-      `Great — the $${sellerCounterAmount.toFixed(
+      `Great â€” the $${sellerCounterAmount.toFixed(
         2
       )} price is agreed. I'll help coordinate the next steps.`;
   }
@@ -1119,7 +1526,7 @@ if (!priorFacebookResponseVerified) {
 
   if (DRY_RUN) {
     console.log(
-      "\nDRY RUN — FACEBOOK RESPONSE NOT SENT"
+      "\nDRY RUN â€” FACEBOOK RESPONSE NOT SENT"
     );
     console.log("WOULD SEND:");
     console.log(decision.response);
@@ -1333,7 +1740,7 @@ if (
 if (negotiationTaskId) {
   if (DRY_RUN) {
     console.log(
-      `DRY RUN — WOULD AUTOMATICALLY START NEGOTIATION AGENT: ${negotiationTaskId}`
+      `DRY RUN â€” WOULD AUTOMATICALLY START NEGOTIATION AGENT: ${negotiationTaskId}`
     );
   } else {
     console.log(
@@ -1420,11 +1827,3 @@ console.log(
   );
   process.exit(1);
 });
-
-
-
-
-
-
-
-
