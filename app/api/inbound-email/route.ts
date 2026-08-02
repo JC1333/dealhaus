@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
@@ -799,11 +799,142 @@ export async function POST(req: Request) {
           })
           .eq("id", negotiationTask.id);
 
-        if (counterError) {
+                if (counterError) {
           return NextResponse.json(
             { error: counterError.message },
             { status: 500 }
           );
+        }
+
+        const {
+          data: buyerOutreachTask,
+          error: buyerOutreachError,
+        } = await supabase
+          .from("buyer_outreach_tasks")
+          .select("buyer_name,buyer_platform")
+          .eq("id", negotiationTask.buyer_outreach_task_id)
+          .single();
+
+        if (buyerOutreachError || !buyerOutreachTask) {
+          return NextResponse.json(
+            {
+              error:
+                buyerOutreachError?.message ||
+                "Buyer outreach task could not be found.",
+            },
+            { status: 500 }
+          );
+        }
+
+        if (
+          buyerOutreachTask.buyer_platform ===
+          "DealHaus Website"
+        ) {
+          const {
+            data: buyerConversations,
+            error: buyerConversationError,
+          } = await supabase
+            .from("buyer_conversations")
+            .select("id,buyer_name,buyer_email")
+            .eq(
+              "inventory_id",
+              negotiationTask.inventory_item_id
+            )
+            .eq(
+              "buyer_name",
+              buyerOutreachTask.buyer_name
+            )
+            .order("created_at", {
+              ascending: false,
+            })
+            .limit(1);
+
+          if (buyerConversationError) {
+            return NextResponse.json(
+              {
+                error:
+                  buyerConversationError.message,
+              },
+              { status: 500 }
+            );
+          }
+
+          const buyerConversation =
+            buyerConversations?.[0] || null;
+
+          const buyerEmail = String(
+            buyerConversation?.buyer_email || ""
+          )
+            .trim()
+            .toLowerCase();
+
+          if (!buyerConversation || !buyerEmail) {
+            return NextResponse.json(
+              {
+                error:
+                  "DealHaus website buyer email could not be found.",
+              },
+              { status: 500 }
+            );
+          }
+
+          const itemTitle =
+            negotiationTask.item_title ||
+            "your DealHaus item";
+
+          const buyerMessage =
+            `Hi ${buyerConversation.buyer_name || "there"},\n\n` +
+            `The seller responded with a counteroffer of $${counterAmount.toFixed(
+              2
+            )} for ${itemTitle}.\n\n` +
+            `Reply ACCEPT to accept the counteroffer, REJECT to decline it, or reply with a new dollar amount.\n\n` +
+            `Thank you,\nDealHaus\ndealhaus.us`;
+
+          const {
+            data: buyerEmailResult,
+            error: buyerEmailError,
+          } = await resend.emails.send({
+            from: "DealHaus <support@dealhaus.us>",
+            to: buyerEmail,
+            subject:
+              `Offer update: ${itemTitle} [DH-BUYER:${negotiationTask.id}]`,
+            text: buyerMessage,
+          });
+
+          if (
+            buyerEmailError ||
+            !buyerEmailResult?.id
+          ) {
+            return NextResponse.json(
+              {
+                error:
+                  buyerEmailError?.message ||
+                  "Buyer counteroffer email was not accepted by Resend.",
+              },
+              { status: 500 }
+            );
+          }
+
+          const {
+            error: conversationUpdateError,
+          } = await supabase
+            .from("buyer_conversations")
+            .update({
+              last_message: buyerMessage,
+              conversation_stage:
+                "seller_counter_sent",
+            })
+            .eq("id", buyerConversation.id);
+
+          if (conversationUpdateError) {
+            return NextResponse.json(
+              {
+                error:
+                  conversationUpdateError.message,
+              },
+              { status: 500 }
+            );
+          }
         }
 
         return NextResponse.json({
@@ -811,6 +942,9 @@ export async function POST(req: Request) {
           negotiation_reply: "counter",
           negotiation_task_id: negotiationTask.id,
           counter_offer: counterAmount,
+          buyer_notified:
+            buyerOutreachTask.buyer_platform ===
+            "DealHaus Website",
         });
       }
 
