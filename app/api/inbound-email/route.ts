@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
@@ -1678,7 +1678,267 @@ export async function POST(req: Request) {
           updatedLogisticsTransaction.meetup_status,
       });
     }
+    const buyerCompletionSubject =
+      receivedEmail.subject || event.data?.subject || "";
 
+    const buyerCompletionMatch =
+      buyerCompletionSubject.match(
+        /\[DH-BUYER-COMPLETION:([0-9a-f-]{36})\]/i
+      );
+
+    if (buyerCompletionMatch) {
+      const completionTransactionId =
+        buyerCompletionMatch[1];
+
+      const {
+        data: buyerCompletionTransaction,
+        error: buyerCompletionTransactionError,
+      } = await supabase
+        .from("brokerage_transactions")
+        .select(
+          "id,inventory_item_id,item_title,buyer_name,buyer_outreach_task_id,meetup_status,transaction_status,buyer_confirmed,seller_confirmed,notes"
+        )
+        .eq("id", completionTransactionId)
+        .single();
+
+      if (
+        buyerCompletionTransactionError ||
+        !buyerCompletionTransaction
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              buyerCompletionTransactionError?.message ||
+              "Buyer completion transaction could not be found.",
+          },
+          { status: 404 }
+        );
+      }
+
+      if (
+        buyerCompletionTransaction.transaction_status !==
+          "open" ||
+        buyerCompletionTransaction.meetup_status !==
+          "completion_confirmations_requested"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Transaction is not waiting for buyer completion confirmation.",
+          },
+          { status: 409 }
+        );
+      }
+
+      const {
+        data: completionBuyerTask,
+        error: completionBuyerTaskError,
+      } = await supabase
+        .from("buyer_outreach_tasks")
+        .select("buyer_name,buyer_platform")
+        .eq(
+          "id",
+          buyerCompletionTransaction.buyer_outreach_task_id
+        )
+        .single();
+
+      if (
+        completionBuyerTaskError ||
+        !completionBuyerTask ||
+        completionBuyerTask.buyer_platform !==
+          "DealHaus Website"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              completionBuyerTaskError?.message ||
+              "Transaction is not linked to a DealHaus website buyer.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const {
+        data: completionBuyerConversations,
+        error: completionBuyerConversationError,
+      } = await supabase
+        .from("buyer_conversations")
+        .select("id,buyer_name,buyer_email")
+        .eq(
+          "inventory_id",
+          buyerCompletionTransaction.inventory_item_id
+        )
+        .eq(
+          "buyer_name",
+          completionBuyerTask.buyer_name
+        )
+        .order("created_at", {
+          ascending: false,
+        })
+        .limit(1);
+
+      if (completionBuyerConversationError) {
+        return NextResponse.json(
+          {
+            error:
+              completionBuyerConversationError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      const completionBuyerConversation =
+        completionBuyerConversations?.[0] || null;
+
+      const expectedCompletionBuyerEmail = String(
+        completionBuyerConversation?.buyer_email || ""
+      )
+        .trim()
+        .toLowerCase();
+
+      if (
+        !completionBuyerConversation ||
+        !expectedCompletionBuyerEmail ||
+        buyerEmail !== expectedCompletionBuyerEmail
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Buyer completion reply sender does not match the DealHaus website buyer.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const buyerCompletionReply =
+        buyerMessage.trim();
+
+      const normalizedBuyerCompletionReply =
+        buyerCompletionReply.toLowerCase();
+
+      const explicitlyNotCompleted =
+        /\b(no|not yet|didn'?t|did not|wasn'?t|was not|never happened|no show|didn'?t show|did not show|cancelled|canceled|fell through|still have it|still working it out|problem|issue)\b/i.test(
+          normalizedBuyerCompletionReply
+        );
+
+      const explicitlyCompleted =
+        /\b(yes|yep|yeah|completed|complete|all done|done|went through|worked out|everything went well|everything went great|picked it up|picked up|got it|transaction completed|sale completed|sold)\b/i.test(
+          normalizedBuyerCompletionReply
+        );
+
+      const buyerCompletionClassification =
+        explicitlyNotCompleted
+          ? "not_completed"
+          : explicitlyCompleted
+            ? "completed"
+            : "needs_review";
+
+      const buyerCompleted =
+        buyerCompletionClassification ===
+        "completed";
+
+      const nextCompletionMeetupStatus =
+        buyerCompleted
+          ? "completion_confirmations_requested"
+          : buyerCompletionClassification ===
+              "not_completed"
+            ? "buyer_completion_not_completed"
+            : "buyer_completion_reply_needs_review";
+
+      const previousCompletionNotes = String(
+        buyerCompletionTransaction.notes || ""
+      ).trim();
+
+      const buyerCompletionNote =
+        `Buyer completion reply: "${buyerCompletionReply}"\n` +
+        `Buyer completion classification: ${buyerCompletionClassification}\n` +
+        (
+          buyerCompleted
+            ? "Buyer confirmed the real-world transaction completed. Seller confirmation is still required."
+            : buyerCompletionClassification ===
+                "not_completed"
+              ? "Buyer reported the transaction did not complete. Human review or re-coordination required."
+              : "Buyer completion reply requires review."
+        );
+
+      const nextCompletionNotes =
+        previousCompletionNotes
+          ? `${previousCompletionNotes}\n\n${buyerCompletionNote}`
+          : buyerCompletionNote;
+
+      const {
+        data: updatedBuyerCompletionTransaction,
+        error: buyerCompletionUpdateError,
+      } = await supabase
+        .from("brokerage_transactions")
+        .update({
+          meetup_status:
+            nextCompletionMeetupStatus,
+          notes:
+            nextCompletionNotes,
+        })
+        .eq(
+          "id",
+          buyerCompletionTransaction.id
+        )
+        .select(
+          "id,meetup_status,buyer_confirmed,seller_confirmed,transaction_status,notes"
+        )
+        .single();
+
+      if (
+        buyerCompletionUpdateError ||
+        !updatedBuyerCompletionTransaction
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              buyerCompletionUpdateError?.message ||
+              "Buyer completion reply update was not verified.",
+          },
+          { status: 500 }
+        );
+      }
+
+      const {
+        error: completionConversationUpdateError,
+      } = await supabase
+        .from("buyer_conversations")
+        .update({
+          last_message:
+            buyerMessage,
+          conversation_stage:
+            nextCompletionMeetupStatus,
+        })
+        .eq(
+          "id",
+          completionBuyerConversation.id
+        );
+
+      if (completionConversationUpdateError) {
+        return NextResponse.json(
+          {
+            error:
+              completionConversationUpdateError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        buyer_completion_reply:
+          buyerCompletionClassification,
+        transaction_id:
+          updatedBuyerCompletionTransaction.id,
+        meetup_status:
+          updatedBuyerCompletionTransaction.meetup_status,
+        buyer_confirmed:
+          updatedBuyerCompletionTransaction.buyer_confirmed,
+        seller_confirmed:
+          updatedBuyerCompletionTransaction.seller_confirmed,
+      });
+    }
     const { data: conversations, error: conversationError } =
       await supabase
         .from("buyer_conversations")
