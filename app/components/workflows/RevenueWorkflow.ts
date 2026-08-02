@@ -100,9 +100,16 @@ async function createRevenueRecord(source: RevenueSource, supabase: SupabaseClie
 }
 
 async function closeInventory(source: RevenueSource, supabase: SupabaseClient) {
-  const { error } = await supabase
+    const { error } = await supabase
     .from("inventory")
-    .update({ status: "closed" })
+    .update({
+      status: "closed",
+      deal_stage: "closed",
+      closed_at: new Date().toISOString(),
+      commission_collected: true,
+      final_sale_price: source.salePrice,
+      ready_to_close: false,
+    })
     .eq("id", source.inventoryItemId);
 
   if (error) {
