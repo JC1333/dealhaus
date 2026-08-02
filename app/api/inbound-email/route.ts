@@ -1346,7 +1346,8 @@ export async function POST(req: Request) {
           ? `${previousClosingNotes}\n\n${buyerPreferenceNote}`
           : buyerPreferenceNote;
 
-      const {
+            const {
+        data: updatedBuyerClosingTransaction,
         error: buyerClosingUpdateError,
       } = await supabase
         .from("brokerage_transactions")
@@ -1360,16 +1361,32 @@ export async function POST(req: Request) {
           "id",
           buyerClosingTransaction.id
         )
-        .eq(
-          "meetup_status",
-          "buyer_coordination_started"
-        );
+        .select(
+          "id,meetup_status,buyer_confirmed,notes"
+        )
+        .single();
 
       if (buyerClosingUpdateError) {
         return NextResponse.json(
           {
             error:
               buyerClosingUpdateError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+            if (
+        !updatedBuyerClosingTransaction ||
+        updatedBuyerClosingTransaction.meetup_status !==
+          "buyer_preference_received" ||
+        updatedBuyerClosingTransaction.buyer_confirmed !==
+          true
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Buyer closing preference update was not verified.",
           },
           { status: 500 }
         );
