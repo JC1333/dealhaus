@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
@@ -965,7 +965,202 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+    const buyerNegotiationSubject =
+      receivedEmail.subject || event.data?.subject || "";
 
+    const buyerNegotiationMatch =
+      buyerNegotiationSubject.match(
+        /\[DH-BUYER:([0-9a-f-]{36})\]/i
+      );
+
+    if (buyerNegotiationMatch) {
+      const negotiationTaskId =
+        buyerNegotiationMatch[1];
+
+      const {
+        data: buyerNegotiationTask,
+        error: buyerNegotiationError,
+      } = await supabase
+        .from("negotiation_tasks")
+        .select("*")
+        .eq("id", negotiationTaskId)
+        .single();
+
+      if (
+        buyerNegotiationError ||
+        !buyerNegotiationTask
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              buyerNegotiationError?.message ||
+              "Buyer negotiation task could not be found.",
+          },
+          { status: 404 }
+        );
+      }
+
+      const {
+        data: buyerOutreachTask,
+        error: buyerOutreachError,
+      } = await supabase
+        .from("buyer_outreach_tasks")
+        .select("buyer_name,buyer_platform")
+        .eq(
+          "id",
+          buyerNegotiationTask.buyer_outreach_task_id
+        )
+        .single();
+
+      if (
+        buyerOutreachError ||
+        !buyerOutreachTask ||
+        buyerOutreachTask.buyer_platform !==
+          "DealHaus Website"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              buyerOutreachError?.message ||
+              "This negotiation is not linked to a DealHaus website buyer.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const {
+        data: websiteBuyerConversations,
+        error: websiteBuyerConversationError,
+      } = await supabase
+        .from("buyer_conversations")
+        .select("id,buyer_name,buyer_email")
+        .eq(
+          "inventory_id",
+          buyerNegotiationTask.inventory_item_id
+        )
+        .eq(
+          "buyer_name",
+          buyerOutreachTask.buyer_name
+        )
+        .order("created_at", {
+          ascending: false,
+        })
+        .limit(1);
+
+      if (websiteBuyerConversationError) {
+        return NextResponse.json(
+          {
+            error:
+              websiteBuyerConversationError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      const websiteBuyerConversation =
+        websiteBuyerConversations?.[0] || null;
+
+      const expectedBuyerEmail = String(
+        websiteBuyerConversation?.buyer_email || ""
+      )
+        .trim()
+        .toLowerCase();
+
+      if (
+        !websiteBuyerConversation ||
+        !expectedBuyerEmail ||
+        buyerEmail !== expectedBuyerEmail
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Buyer reply sender does not match the DealHaus website buyer.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const normalizedBuyerReply =
+        buyerMessage.trim();
+
+      if (/^ACCEPT\b/i.test(normalizedBuyerReply)) {
+        const { error: buyerAcceptError } =
+          await supabase
+            .from("negotiation_tasks")
+            .update({
+              negotiation_status: "offer_accepted",
+            })
+            .eq("id", buyerNegotiationTask.id);
+
+        if (buyerAcceptError) {
+          return NextResponse.json(
+            { error: buyerAcceptError.message },
+            { status: 500 }
+          );
+        }
+
+        const { error: inventoryCloseError } =
+          await supabase
+            .from("inventory")
+            .update({
+              ready_to_close: true,
+              deal_stage: "ready_to_close",
+            })
+            .eq(
+              "id",
+              buyerNegotiationTask.inventory_item_id
+            );
+
+        if (inventoryCloseError) {
+          return NextResponse.json(
+            { error: inventoryCloseError.message },
+            { status: 500 }
+          );
+        }
+
+        const { error: conversationUpdateError } =
+          await supabase
+            .from("buyer_conversations")
+            .update({
+              last_message: buyerMessage,
+              conversation_stage: "offer_accepted",
+            })
+            .eq(
+              "id",
+              websiteBuyerConversation.id
+            );
+
+        if (conversationUpdateError) {
+          return NextResponse.json(
+            {
+              error:
+                conversationUpdateError.message,
+            },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          buyer_negotiation_reply: "accepted",
+          negotiation_task_id:
+            buyerNegotiationTask.id,
+          accepted_price:
+            buyerNegotiationTask.current_offer,
+          ready_to_close: true,
+        });
+      }
+
+      return NextResponse.json(
+        {
+          success: false,
+          buyer_negotiation_reply: "unclear",
+          error:
+            "Buyer reply must clearly say ACCEPT.",
+        },
+        { status: 400 }
+      );
+    }
     const { data: conversations, error: conversationError } =
       await supabase
         .from("buyer_conversations")
