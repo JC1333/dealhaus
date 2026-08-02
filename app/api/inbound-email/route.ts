@@ -1429,6 +1429,255 @@ export async function POST(req: Request) {
         buyer_confirmed: true,
       });
     }
+    const buyerLogisticsSubject =
+      receivedEmail.subject || event.data?.subject || "";
+
+    const buyerLogisticsMatch =
+      buyerLogisticsSubject.match(
+        /\[DH-LOGISTICS:([0-9a-f-]{36})\]/i
+      );
+
+    if (buyerLogisticsMatch) {
+      const logisticsTransactionId =
+        buyerLogisticsMatch[1];
+
+      const {
+        data: logisticsTransaction,
+        error: logisticsTransactionError,
+      } = await supabase
+        .from("brokerage_transactions")
+        .select(
+          "id,inventory_item_id,item_title,buyer_name,buyer_outreach_task_id,meetup_status,transaction_status,notes"
+        )
+        .eq("id", logisticsTransactionId)
+        .single();
+
+      if (
+        logisticsTransactionError ||
+        !logisticsTransaction
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              logisticsTransactionError?.message ||
+              "Buyer logistics transaction could not be found.",
+          },
+          { status: 404 }
+        );
+      }
+
+      if (
+        logisticsTransaction.transaction_status !==
+          "open" ||
+        logisticsTransaction.meetup_status !==
+          "buyer_logistics_confirmation_started"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Transaction is not waiting for buyer logistics confirmation.",
+          },
+          { status: 409 }
+        );
+      }
+
+      const {
+        data: logisticsBuyerTask,
+        error: logisticsBuyerTaskError,
+      } = await supabase
+        .from("buyer_outreach_tasks")
+        .select("buyer_name,buyer_platform")
+        .eq(
+          "id",
+          logisticsTransaction.buyer_outreach_task_id
+        )
+        .single();
+
+      if (
+        logisticsBuyerTaskError ||
+        !logisticsBuyerTask ||
+        logisticsBuyerTask.buyer_platform !==
+          "DealHaus Website"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              logisticsBuyerTaskError?.message ||
+              "Transaction is not linked to a DealHaus website buyer.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const {
+        data: logisticsBuyerConversations,
+        error: logisticsBuyerConversationError,
+      } = await supabase
+        .from("buyer_conversations")
+        .select("id,buyer_name,buyer_email")
+        .eq(
+          "inventory_id",
+          logisticsTransaction.inventory_item_id
+        )
+        .eq(
+          "buyer_name",
+          logisticsBuyerTask.buyer_name
+        )
+        .order("created_at", {
+          ascending: false,
+        })
+        .limit(1);
+
+      if (logisticsBuyerConversationError) {
+        return NextResponse.json(
+          {
+            error:
+              logisticsBuyerConversationError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      const logisticsBuyerConversation =
+        logisticsBuyerConversations?.[0] || null;
+
+      const expectedLogisticsBuyerEmail = String(
+        logisticsBuyerConversation?.buyer_email || ""
+      )
+        .trim()
+        .toLowerCase();
+
+      if (
+        !logisticsBuyerConversation ||
+        !expectedLogisticsBuyerEmail ||
+        buyerEmail !== expectedLogisticsBuyerEmail
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Buyer logistics reply sender does not match the DealHaus website buyer.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const buyerLogisticsReply =
+        buyerMessage.trim();
+
+      const normalizedBuyerLogisticsReply =
+        buyerLogisticsReply.toLowerCase();
+
+      const logisticsChangeRequest =
+        /\b(but|instead|different|change|can we|could we|what about|another time|later|earlier|doesn'?t work|does not work|can'?t|cannot)\b/i.test(
+          normalizedBuyerLogisticsReply
+        );
+
+      const logisticsAffirmative =
+        /^(confirm|confirmed)\b/i.test(
+          normalizedBuyerLogisticsReply
+        ) ||
+        /\b(yes|yeah|yep|works for me|that works|works|sounds good|perfect|okay|ok|good with me|see you then|i can do that|i'll be there|i will be there)\b/i.test(
+          normalizedBuyerLogisticsReply
+        );
+
+      const logisticsClassification =
+        logisticsAffirmative &&
+        !logisticsChangeRequest
+          ? "confirmed"
+          : "needs_review";
+
+      const nextLogisticsMeetupStatus =
+        logisticsClassification === "confirmed"
+          ? "buyer_logistics_confirmed"
+          : "buyer_logistics_reply_needs_review";
+
+      const previousLogisticsNotes = String(
+        logisticsTransaction.notes || ""
+      ).trim();
+
+      const buyerLogisticsNote =
+        `Buyer logistics reply: "${buyerLogisticsReply}"\n` +
+        `Buyer logistics classification: ${logisticsClassification}\n` +
+        (
+          logisticsClassification === "confirmed"
+            ? "Next step: schedule the agreed meetup."
+            : "Next step: buyer logistics reply requires review or seller re-coordination."
+        );
+
+      const nextLogisticsNotes =
+        previousLogisticsNotes
+          ? `${previousLogisticsNotes}\n\n${buyerLogisticsNote}`
+          : buyerLogisticsNote;
+
+      const {
+        data: updatedLogisticsTransaction,
+        error: logisticsUpdateError,
+      } = await supabase
+        .from("brokerage_transactions")
+        .update({
+          meetup_status:
+            nextLogisticsMeetupStatus,
+          notes:
+            nextLogisticsNotes,
+        })
+        .eq(
+          "id",
+          logisticsTransaction.id
+        )
+        .select(
+          "id,meetup_status,buyer_confirmed,seller_confirmed,transaction_status,notes"
+        )
+        .single();
+
+      if (
+        logisticsUpdateError ||
+        !updatedLogisticsTransaction
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              logisticsUpdateError?.message ||
+              "Buyer logistics confirmation update was not verified.",
+          },
+          { status: 500 }
+        );
+      }
+
+      const {
+        error: logisticsConversationUpdateError,
+      } = await supabase
+        .from("buyer_conversations")
+        .update({
+          last_message:
+            buyerMessage,
+          conversation_stage:
+            nextLogisticsMeetupStatus,
+        })
+        .eq(
+          "id",
+          logisticsBuyerConversation.id
+        );
+
+      if (logisticsConversationUpdateError) {
+        return NextResponse.json(
+          {
+            error:
+              logisticsConversationUpdateError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        buyer_logistics_reply:
+          logisticsClassification,
+        transaction_id:
+          updatedLogisticsTransaction.id,
+        meetup_status:
+          updatedLogisticsTransaction.meetup_status,
+      });
+    }
 
     const { data: conversations, error: conversationError } =
       await supabase
