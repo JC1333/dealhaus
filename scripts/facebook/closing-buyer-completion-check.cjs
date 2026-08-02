@@ -240,9 +240,47 @@ if (!TRANSACTION_ID) {
         "MARKETPLACE CONTROL FOUND"
       );
 
-            await marketplace.evaluate((element) => {
-        element.click();
-      });
+                  const marketplaceClicked =
+        await page.evaluate(() => {
+          const elements = Array.from(
+            document.querySelectorAll(
+              'a, button, [role="button"], [role="link"], span'
+            )
+          );
+
+          const textElement = elements.find(
+            (element) =>
+              element.textContent?.trim() ===
+                "Marketplace" &&
+              element instanceof HTMLElement &&
+              element.offsetParent !== null
+          );
+
+          if (!textElement) {
+            return false;
+          }
+
+          const clickable =
+            textElement.closest(
+              'a, button, [role="button"], [role="link"]'
+            ) || textElement;
+
+          if (!(clickable instanceof HTMLElement)) {
+            return false;
+          }
+
+          clickable.click();
+          return true;
+        });
+
+      if (!marketplaceClicked) {
+        console.log(
+          "Marketplace control disappeared before click. Retrying."
+        );
+
+        await page.waitForTimeout(1000);
+        continue;
+      }
 
       await page.waitForTimeout(3000);
 
