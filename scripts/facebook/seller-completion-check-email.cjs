@@ -173,30 +173,13 @@ function extractBuyerClosingData(notes) {
     throw new Error("Transaction does not contain a valid sale price.");
   }
 
-  // Use the exact buyer reply already verified by the closing reply processor.
-  const buyerClosing = extractBuyerClosingData(tx.notes);
-
-  if (!buyerClosing.reply) {
-    throw new Error(
-      "Buyer closing reply was not found in transaction notes."
-    );
-  }
-
-  if (
-    buyerClosing.classification !== "pickup" &&
-    buyerClosing.classification !== "assembly_or_delivery"
-  ) {
-    throw new Error(
-      `Buyer closing preference is not actionable: ${buyerClosing.classification || "missing"}`
-    );
-  }
-
   console.log("Seller:", sellerEmail);
   console.log("Item:", itemTitle);
   console.log("Buyer:", buyerName);
-  console.log("Accepted price:", `$${salePrice.toFixed(2)}`);
-  console.log("Buyer preference:", buyerClosing.classification);
-  console.log("Buyer exact reply:", buyerClosing.reply);
+  console.log(
+    "Accepted price:",
+    `$${salePrice.toFixed(2)}`
+  );
 
     const subject =
     `DealHaus Sale Completion [${tx.id}]: ${itemTitle}`;
