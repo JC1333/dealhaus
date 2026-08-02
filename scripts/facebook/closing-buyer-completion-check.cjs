@@ -240,9 +240,8 @@ if (!TRANSACTION_ID) {
         "MARKETPLACE CONTROL FOUND"
       );
 
-      await marketplace.click({
-        timeout: 15000,
-        force: true,
+            await marketplace.evaluate((element) => {
+        element.click();
       });
 
       await page.waitForTimeout(3000);
