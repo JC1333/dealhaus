@@ -268,11 +268,20 @@ export async function POST(req: Request) {
         );
       }
 
-      const sellerReply =
+            const sellerReply =
         buyerMessage.trim();
 
-      const normalized =
-        sellerReply.toLowerCase();
+      const normalized = sellerReply
+        .replace(
+          /\s*Sent from my iPhone\s*$/i,
+          ""
+        )
+        .replace(
+          /\s*Sent from my Android\s*$/i,
+          ""
+        )
+        .trim()
+        .toLowerCase();
 
       const explicitlyNotCompleted =
         /\b(no|not yet|didn'?t|did not|wasn'?t|was not|never happened|no show|didn'?t show|did not show|cancelled|canceled|fell through|still have it|problem|issue)\b/i.test(
