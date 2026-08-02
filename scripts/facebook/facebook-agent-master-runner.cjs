@@ -3,12 +3,16 @@ const path = require("path");
 
 process.loadEnvFile(path.resolve(process.cwd(), ".env.local"));
 
-const CHECK_INTERVAL_MS = 60 * 1000;
+const CHECK_INTERVAL_MS =
+  Number(
+    process.env.MASTER_SWEEP_INTERVAL_MS ||
+      5 * 60 * 1000
+  );
 
 const ACQUISITION_INTERVAL_MS =
   Number(
     process.env.ACQUISITION_INTERVAL_MS ||
-      24 * 60 * 60 * 1000
+      30 * 60 * 1000
   );
 
 let lastAcquisitionRunAt = 0;
