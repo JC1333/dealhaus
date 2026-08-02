@@ -52,11 +52,18 @@ async function runClosingStartRunner() {
     `Transactions ready to start closing: ${transactions.length}`
   );
 
-  const senderPath = path.join(
+    const facebookSenderPath = path.join(
     process.cwd(),
     "scripts",
     "facebook",
     "closing-seller-to-buyer.cjs"
+  );
+
+  const websiteEmailSenderPath = path.join(
+    process.cwd(),
+    "scripts",
+    "facebook",
+    "closing-seller-to-buyer-email.cjs"
   );
 
   let successful = 0;
@@ -113,6 +120,34 @@ async function runClosingStartRunner() {
       skipped++;
       continue;
     }
+
+        const {
+      data: buyerTask,
+      error: buyerTaskError,
+    } = await supabase
+      .from("buyer_outreach_tasks")
+      .select("buyer_platform")
+      .eq(
+        "id",
+        transaction.buyer_outreach_task_id
+      )
+      .single();
+
+    if (buyerTaskError) {
+      throw buyerTaskError;
+    }
+
+    const senderPath =
+      buyerTask?.buyer_platform === "DealHaus Website"
+        ? websiteEmailSenderPath
+        : facebookSenderPath;
+
+    console.log(
+      "Relay channel:",
+      buyerTask?.buyer_platform === "DealHaus Website"
+        ? "DealHaus Website Email"
+        : "Facebook Marketplace"
+    );
 
     const result = spawnSync(
       process.execPath,
