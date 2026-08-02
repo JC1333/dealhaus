@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
