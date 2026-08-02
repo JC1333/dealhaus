@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
@@ -1161,6 +1161,258 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+        const buyerClosingSubject =
+      receivedEmail.subject || event.data?.subject || "";
+
+    const buyerClosingMatch =
+      buyerClosingSubject.match(
+        /\[DH-CLOSING:([0-9a-f-]{36})\]/i
+      );
+
+    if (buyerClosingMatch) {
+      const closingTransactionId =
+        buyerClosingMatch[1];
+
+      const {
+        data: buyerClosingTransaction,
+        error: buyerClosingTransactionError,
+      } = await supabase
+        .from("brokerage_transactions")
+        .select(
+          "id,inventory_item_id,item_title,buyer_name,buyer_outreach_task_id,meetup_status,transaction_status,notes"
+        )
+        .eq("id", closingTransactionId)
+        .single();
+
+      if (
+        buyerClosingTransactionError ||
+        !buyerClosingTransaction
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              buyerClosingTransactionError?.message ||
+              "Buyer closing transaction could not be found.",
+          },
+          { status: 404 }
+        );
+      }
+
+      if (
+        buyerClosingTransaction.transaction_status !==
+          "open" ||
+        buyerClosingTransaction.meetup_status !==
+          "buyer_coordination_started"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Buyer closing transaction is not waiting for a pickup or delivery preference.",
+          },
+          { status: 409 }
+        );
+      }
+
+      const {
+        data: closingBuyerTask,
+        error: closingBuyerTaskError,
+      } = await supabase
+        .from("buyer_outreach_tasks")
+        .select("buyer_name,buyer_platform")
+        .eq(
+          "id",
+          buyerClosingTransaction.buyer_outreach_task_id
+        )
+        .single();
+
+      if (
+        closingBuyerTaskError ||
+        !closingBuyerTask ||
+        closingBuyerTask.buyer_platform !==
+          "DealHaus Website"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              closingBuyerTaskError?.message ||
+              "Closing transaction is not linked to a DealHaus website buyer.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const {
+        data: closingBuyerConversations,
+        error: closingBuyerConversationError,
+      } = await supabase
+        .from("buyer_conversations")
+        .select("id,buyer_name,buyer_email")
+        .eq(
+          "inventory_id",
+          buyerClosingTransaction.inventory_item_id
+        )
+        .eq(
+          "buyer_name",
+          closingBuyerTask.buyer_name
+        )
+        .order("created_at", {
+          ascending: false,
+        })
+        .limit(1);
+
+      if (closingBuyerConversationError) {
+        return NextResponse.json(
+          {
+            error:
+              closingBuyerConversationError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      const closingBuyerConversation =
+        closingBuyerConversations?.[0] || null;
+
+      const expectedClosingBuyerEmail = String(
+        closingBuyerConversation?.buyer_email || ""
+      )
+        .trim()
+        .toLowerCase();
+
+      if (
+        !closingBuyerConversation ||
+        !expectedClosingBuyerEmail ||
+        buyerEmail !== expectedClosingBuyerEmail
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Buyer closing reply sender does not match the DealHaus website buyer.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const normalizedClosingReply =
+        buyerMessage.trim();
+
+      let buyerPreference = "";
+
+      if (
+        /^PICK\s*UP\b/i.test(
+          normalizedClosingReply
+        ) ||
+        /^PICKUP\b/i.test(
+          normalizedClosingReply
+        )
+      ) {
+        buyerPreference = "pickup";
+      }
+
+      if (
+        /^DELIVERY\b/i.test(
+          normalizedClosingReply
+        ) ||
+        /^DELIVER\b/i.test(
+          normalizedClosingReply
+        )
+      ) {
+        buyerPreference = "delivery";
+      }
+
+      if (!buyerPreference) {
+        return NextResponse.json(
+          {
+            success: false,
+            buyer_closing_reply: "unclear",
+            error:
+              "Buyer must clearly reply PICKUP or DELIVERY.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const previousClosingNotes = String(
+        buyerClosingTransaction.notes || ""
+      ).trim();
+
+      const buyerPreferenceNote =
+        `Buyer closing preference: ${buyerPreference}\n` +
+        `Buyer exact reply: "${normalizedClosingReply}"\n` +
+        `Next step: send seller coordination email.`;
+
+      const nextClosingNotes =
+        previousClosingNotes
+          ? `${previousClosingNotes}\n\n${buyerPreferenceNote}`
+          : buyerPreferenceNote;
+
+      const {
+        error: buyerClosingUpdateError,
+      } = await supabase
+        .from("brokerage_transactions")
+        .update({
+          meetup_status:
+            "buyer_preference_received",
+          buyer_confirmed: true,
+          notes: nextClosingNotes,
+        })
+        .eq(
+          "id",
+          buyerClosingTransaction.id
+        )
+        .eq(
+          "meetup_status",
+          "buyer_coordination_started"
+        );
+
+      if (buyerClosingUpdateError) {
+        return NextResponse.json(
+          {
+            error:
+              buyerClosingUpdateError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      const {
+        error: buyerClosingConversationUpdateError,
+      } = await supabase
+        .from("buyer_conversations")
+        .update({
+          last_message: buyerMessage,
+          conversation_stage:
+            "buyer_preference_received",
+        })
+        .eq(
+          "id",
+          closingBuyerConversation.id
+        );
+
+      if (
+        buyerClosingConversationUpdateError
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              buyerClosingConversationUpdateError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        buyer_closing_reply:
+          buyerPreference,
+        transaction_id:
+          buyerClosingTransaction.id,
+        meetup_status:
+          "buyer_preference_received",
+        buyer_confirmed: true,
+      });
+    }
+
     const { data: conversations, error: conversationError } =
       await supabase
         .from("buyer_conversations")
