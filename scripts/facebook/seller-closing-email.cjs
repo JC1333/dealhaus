@@ -1,4 +1,4 @@
-﻿const { createClient } = require("@supabase/supabase-js");
+const { createClient } = require("@supabase/supabase-js");
 const { Resend } = require("resend");
 
 const TRANSACTION_ID = process.argv[2];
@@ -18,19 +18,34 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 function extractBuyerClosingData(notes) {
   const text = String(notes || "");
 
-  const replyMatch = text.match(
-    /Buyer closing reply:\s*"([^"]+)"/i
-  );
+  const replyMatch =
+    text.match(
+      /Buyer closing reply:\s*"([^"]+)"/i
+    ) ||
+    text.match(
+      /Buyer exact reply:\s*"([^"]+)"/i
+    );
 
-  const classificationMatch = text.match(
-    /Buyer preference classification:\s*([^\r\n]+)/i
-  );
+  const classificationMatch =
+    text.match(
+      /Buyer preference classification:\s*([^\r\n]+)/i
+    ) ||
+    text.match(
+      /Buyer closing preference:\s*([^\r\n]+)/i
+    );
+
+  const rawClassification = classificationMatch
+    ? classificationMatch[1].trim().toLowerCase()
+    : "";
+
+  const classification =
+    rawClassification === "delivery"
+      ? "assembly_or_delivery"
+      : rawClassification;
 
   return {
     reply: replyMatch ? replyMatch[1].trim() : "",
-    classification: classificationMatch
-      ? classificationMatch[1].trim()
-      : "",
+    classification,
   };
 }
 
@@ -262,6 +277,7 @@ function extractBuyerClosingData(notes) {
   );
   process.exit(1);
 });
+
 
 
 
