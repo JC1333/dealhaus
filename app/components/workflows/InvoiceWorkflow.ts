@@ -896,14 +896,14 @@ export async function runInvoiceWorkflow(supabase: SupabaseClient = defaultSupab
 </html>`;
 
     try {
-      const baseUrl =
+            const baseUrl =
         typeof window !== "undefined"
           ? ""
-          : process.env.NEXT_PUBLIC_SITE_URL
-            ? process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")
-            : process.env.VERCEL_URL
-              ? `https://${process.env.VERCEL_URL}`
-              : "https://dealhaus.us";
+          : (
+              process.env.DEALHAUS_BASE_URL ||
+              process.env.NEXT_PUBLIC_SITE_URL ||
+              "https://dealhaus.us"
+            ).replace(/\/$/, "");
 
       const response = await fetch(`${baseUrl}/api/send-email`, {
         method: "POST",
