@@ -193,17 +193,22 @@ export async function runRevenueWorkflow(supabase: SupabaseClient = defaultSupab
 
       const result = await createRevenueRecord(source, supabase);
 
-      if (result.error) {
-        revenueErrors += 1;
-        continue;
-      }
-
-      if (result.existing) {
+            if (result.existing) {
         revenueExisting += 1;
+        continue;
       }
 
       if (result.created) {
         revenueCreated += 1;
+
+        const inventoryClosed = await closeInventory(
+          source,
+          supabase
+        );
+
+        if (!inventoryClosed) {
+          revenueErrors += 1;
+        }
       }
 
       if (transaction.marketplace_publish_task_id) {
