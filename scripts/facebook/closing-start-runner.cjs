@@ -52,12 +52,19 @@ async function runClosingStartRunner() {
     `Transactions ready to start closing: ${transactions.length}`
   );
 
-  const senderPath = path.join(
-    process.cwd(),
-    "scripts",
-    "facebook",
-    "closing-buyer-send.cjs"
-  );
+  const facebookSenderPath = path.join(
+  process.cwd(),
+  "scripts",
+  "facebook",
+  "closing-buyer-send.cjs"
+);
+
+const websiteEmailSenderPath = path.join(
+  process.cwd(),
+  "scripts",
+  "facebook",
+  "closing-buyer-email.cjs"
+);
 
   let successful = 0;
   let failed = 0;
@@ -114,13 +121,38 @@ async function runClosingStartRunner() {
       continue;
     }
 
-    const result = spawnSync(
-      process.execPath,
-      [
-        "--env-file=.env.local",
-        senderPath,
-        transaction.id,
-      ],
+    const {
+  data: buyerTask,
+  error: buyerTaskError,
+} = await supabase
+  .from("buyer_outreach_tasks")
+  .select("buyer_platform")
+  .eq("id", transaction.buyer_outreach_task_id)
+  .single();
+
+if (buyerTaskError) {
+  throw buyerTaskError;
+}
+
+const senderPath =
+  buyerTask?.buyer_platform === "DealHaus Website"
+    ? websiteEmailSenderPath
+    : facebookSenderPath;
+
+console.log(
+  "Closing channel:",
+  buyerTask?.buyer_platform === "DealHaus Website"
+    ? "DealHaus Website Email"
+    : "Facebook Marketplace"
+);
+
+const result = spawnSync(
+  process.execPath,
+  [
+    "--env-file=.env.local",
+    senderPath,
+    transaction.id,
+  ],
       {
         cwd: process.cwd(),
         env: process.env,
